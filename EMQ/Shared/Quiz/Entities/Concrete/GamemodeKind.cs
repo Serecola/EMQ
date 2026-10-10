@@ -2,8 +2,8 @@
 
 public enum GamemodeKind
 {
-    Default = 0,
-    // NGMC = 1,
-    Radio = 2,
-    EruMode = 3,
+    Default,
+    NGMC,
+    Radio,
+    EruMode,
 }

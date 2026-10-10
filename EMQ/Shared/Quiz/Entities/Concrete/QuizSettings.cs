@@ -35,7 +35,7 @@ public class QuizSettings
 
     // todo 1v1s?
     public bool IsSharedGuessesTeams =>
-        TeamSize > 1 && GamemodeKind != GamemodeKind.EruMode;
+        TeamSize > 1 && GamemodeKind != GamemodeKind.NGMC && GamemodeKind != GamemodeKind.EruMode;
 
     public bool IsMstGuessTypeEnabled =>
         EnabledGuessKinds.TryGetValue(GuessKind.Mst, out bool mst) && mst;
@@ -189,20 +189,20 @@ public class QuizSettings
     [DefaultValue(GamemodeKind.Default)]
     public GamemodeKind GamemodeKind { get; set; } = GamemodeKind.Default;
 
-    // [ProtoMember(19)]
-    // [Required]
-    // [DefaultValue(true)]
-    // public bool NGMCAllowBurning { get; set; } = true;
+    [ProtoMember(19)]
+    [Required]
+    [DefaultValue(true)]
+    public bool NGMCAllowBurning { get; set; } = true;
 
     [ProtoMember(20)]
     [Required]
     [DefaultValue(false)]
     public bool AllowViewingInventoryDuringQuiz { get; set; } = false; // todo diff
 
-    // [ProtoMember(21)]
-    // [Required]
-    // [DefaultValue(true)]
-    // public bool NGMCAutoPickOnlyCorrectPlayerInTeam { get; set; } = true;
+    [ProtoMember(21)]
+    [Required]
+    [DefaultValue(true)]
+    public bool NGMCAutoPickOnlyCorrectPlayerInTeam { get; set; } = true;
 
     [ProtoMember(22)]
     [Required]
@@ -660,6 +660,11 @@ public class QuizSettings
         if (o.GamemodeKind != n.GamemodeKind)
         {
             diff.Add($"Game mode: {o.GamemodeKind.GetDescription()} → {n.GamemodeKind.GetDescription()}");
+        }
+
+        if (o.NGMCAllowBurning != n.NGMCAllowBurning)
+        {
+            diff.Add($"NGMC burning: {o.NGMCAllowBurning} → {n.NGMCAllowBurning}");
         }
 
         if (o.Filters.StartTimePercentageStart != n.Filters.StartTimePercentageStart ||

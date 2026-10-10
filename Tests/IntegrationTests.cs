@@ -175,7 +175,9 @@ public class IntegrationTests
                         },
                         ListDistributionKind = ListDistributionKind.Random,
                         GamemodeKind = GamemodeKind.Default,
+                        NGMCAllowBurning = false,
                         AllowViewingInventoryDuringQuiz = false,
+                        NGMCAutoPickOnlyCorrectPlayerInTeam = false
                     };
 
                     HttpResponseMessage res4 = await client.PostAsJsonAsync("Quiz/ChangeRoomSettings",

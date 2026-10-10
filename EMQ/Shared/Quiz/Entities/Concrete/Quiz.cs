@@ -96,6 +96,9 @@ public readonly record struct GuessInfo
     public bool IsGuessCorrect { get; init; }
 
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public float? NGMCGuessesCurrent { get; init; }
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public int? Lives { get; init; }
 
     // ReSharper disable once UnusedAutoPropertyAccessor.Global
