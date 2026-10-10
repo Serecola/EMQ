@@ -143,9 +143,8 @@ public static class Utils
     {
         return string.IsNullOrEmpty(x)
             ? ""
-            : string.Join("", x
-                .Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-                .Reverse()).NormalizeForAutocomplete();
+            : string.Join("", System.Linq.Enumerable.Reverse(x
+                .Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))).NormalizeForAutocomplete();
     }
 
     public static T MathDotClampButItsNotRetarded<T>(T value, T min, T max) where T : INumber<T>

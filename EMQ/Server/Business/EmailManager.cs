@@ -19,19 +19,22 @@ public static class EmailManager
 
     private static string Password { get; }
 
+    private static string FromAddress { get; }
+
     static EmailManager()
     {
         Host = Environment.GetEnvironmentVariable("EMQ_SMTP_HOST")!;
         Port = int.Parse(Environment.GetEnvironmentVariable("EMQ_SMTP_PORT")!);
         Username = Environment.GetEnvironmentVariable("EMQ_SMTP_USERNAME")!;
         Password = Environment.GetEnvironmentVariable("EMQ_SMTP_PASSWORD")!;
+        FromAddress = Environment.GetEnvironmentVariable("EMQ_SMTP_FROM")!;
     }
 
     /// Warning: message.From is overridden
     public static async Task SendEmail(MimeMessage message, string description)
     {
         message.From.Clear();
-        message.From.Add(new MailboxAddress(Constants.WebsiteName, Username));
+        message.From.Add(new MailboxAddress(Constants.WebsiteName, FromAddress));
 
         if (!(message.TextBody != null || message.HtmlBody != null))
         {

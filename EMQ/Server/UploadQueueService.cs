@@ -106,8 +106,6 @@ public sealed class UploadQueueService : BackgroundService
         var session = value.Session;
         var request = value.Request;
 
-        int storageMode = 1; // 0: local disk, 1: SFTP
-        const string outDir = @"M:\a\mb\selfhoststorage\pending"; // only used if storageMode == 0
         const long maxFileSize = UploadConstants.MaxFilesizeBytes;
 
         switch (file.Length)
@@ -246,35 +244,12 @@ public sealed class UploadQueueService : BackgroundService
             }
             else
             {
-                // ReSharper disable once ConditionIsAlwaysTrueOrFalse
-                if (storageMode == 0)
-                {
-                    // have not tested if this storageMode works properly
-                    Directory.CreateDirectory(outDir);
-                    string newPath = Path.Combine(outDir, trustedFileNameForFileStorage);
-                    System.IO.File.Copy(tempPath, newPath);
+                // we need to use a FileStream here because it seems like FFProbe doesn't work when using a MemoryStream
+                UploadStorageHelper.StoreFile(fs, Path.Combine("userup", trustedFileNameForFileStorage));
 
-                    var resourcePath = new Uri($"{request.Scheme}://{request.Host}/");
-                    uploadResult.ResultUrl =
-                        $"{resourcePath}selfhoststorage/userup/{trustedFileNameForFileStorage}";
-                }
-                // ReSharper disable once ConditionIsAlwaysTrueOrFalse
-                else if (storageMode == 1)
-                {
-                    // we need to use a FileStream here because it seems like FFProbe doesn't work when using a MemoryStream
-                    ServerUtils.SftpFileUpload(
-                        UploadConstants.SftpHost, UploadConstants.SftpUsername,
-                        UploadConstants.SftpPassword,
-                        fs, Path.Combine(UploadConstants.SftpUserUploadDir, trustedFileNameForFileStorage));
-
-                    uploadResult.ResultUrl =
-                        $"https://emqselfhost/selfhoststorage/userup/{trustedFileNameForFileStorage}"
-                            .ReplaceSelfhostLink();
-                }
-                else
-                {
-                    throw new Exception("invalid storageMode");
-                }
+                uploadResult.ResultUrl =
+                    $"https://emqselfhost/selfhoststorage/userup/{trustedFileNameForFileStorage}"
+                        .ReplaceSelfhostLink();
             }
 
             uploadResult.IsSuccess = true;
@@ -323,22 +298,11 @@ public sealed class UploadQueueService : BackgroundService
 
             if (encodedByEmq && extractedAnalysis != null)
             {
-                // ReSharper disable once ConditionIsAlwaysTrueOrFalse
-                if (storageMode == 1)
-                {
-                    file.FileStream.Position = 0;
-                    ServerUtils.SftpFileUpload(
-                        UploadConstants.SftpHost, UploadConstants.SftpUsername,
-                        UploadConstants.SftpPassword,
-                        file.FileStream,
-                        Path.Combine(UploadConstants.SftpUserUploadDir, "raw/",
-                            // not using the local variable "extension" here to avoid somehow desyncing
-                            $"{rqId}.{extractedAnalysis.OriginalExtension}"));
-                }
-                else
-                {
-                    throw new NotImplementedException();
-                }
+                UploadStorageHelper.StoreFile(
+                    file.FileStream,
+                    Path.Combine("userup", "raw",
+                        // not using the local variable "extension" here to avoid somehow desyncing
+                        $"{rqId}.{extractedAnalysis.OriginalExtension}"));
             }
         }
         catch (Exception ex)
@@ -404,15 +368,13 @@ public sealed class UploadQueueService : BackgroundService
         }
 
         string extractedTrustedFileNameForFileStorage = $"{guid}{extension}";
-        Console.WriteLine(Path.Combine(UploadConstants.SftpUserUploadDir,
+        Console.WriteLine(Path.Combine("userup",
             sftpSubDir,
             extractedTrustedFileNameForFileStorage));
 
         var fs = new FileStream(extractedOutputFinal, FileMode.Open, FileAccess.Read);
-        ServerUtils.SftpFileUpload(
-            UploadConstants.SftpHost, UploadConstants.SftpUsername,
-            UploadConstants.SftpPassword,
-            fs, Path.Combine(UploadConstants.SftpUserUploadDir, sftpSubDir,
+        UploadStorageHelper.StoreFile(fs,
+            Path.Combine("userup", sftpSubDir,
                 extractedTrustedFileNameForFileStorage));
 
         string extractedResultUrl =

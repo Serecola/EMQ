@@ -24,6 +24,20 @@ public static class AuthStuff // todo? find better name
 
     public static readonly string AuthorizationHeaderName = HttpRequestHeader.Authorization.ToString();
 
+    // Permissions that are pre-checked in the "Excluded permissions" of every newly registered user.
+    // These are revoked from the user by default (even though their role would otherwise grant them),
+    // and can be re-granted individually via the Included permissions editor.
+    public static HashSet<PermissionKind> DefaultExcludedPermissionsForNewUsers { get; } = new()
+    {
+        PermissionKind.NekobakoUpload,
+        PermissionKind.UploadSongLink,
+        PermissionKind.ReportSongLink,
+        PermissionKind.ImportHelper,
+        PermissionKind.DeleteSongLink,
+        PermissionKind.ReviewSongLink,
+        PermissionKind.ReviewEdit,
+    };
+
     public static HashSet<PermissionKind> DefaultVisitorPermissions { get; } = new()
     {
         PermissionKind.Visitor, PermissionKind.Login, PermissionKind.SearchLibrary, PermissionKind.ViewStats

@@ -279,6 +279,42 @@ if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows) && Directory.Exists(Cons
     });
 }
 
+if (UploadStorageHelper.LocalSelfhostStorageRoot is { } localSelfhostStorageRoot)
+{
+    Directory.CreateDirectory(localSelfhostStorageRoot);
+    // serves files stored in local mode at /selfhoststorage/... (same URLs as production)
+    app.UseStaticFiles(new StaticFileOptions
+    {
+        FileProvider = new PhysicalFileProvider(localSelfhostStorageRoot),
+        RequestPath = "/selfhoststorage",
+        ServeUnknownFileTypes = true,
+    });
+}
+
+if (UploadStorageHelper.LocalNekobakoRoot is { } localNekobakoRoot)
+{
+    Directory.CreateDirectory(localNekobakoRoot);
+    // registered after the general /selfhoststorage mapping so it wins for nekobako files
+    app.UseStaticFiles(new StaticFileOptions
+    {
+        FileProvider = new PhysicalFileProvider(localNekobakoRoot),
+        RequestPath = "/selfhoststorage/userup/nekobako",
+        ServeUnknownFileTypes = true,
+    });
+}
+
+if (UploadStorageHelper.LocalVndbImgRoot is { } localVndbImgRoot && Directory.Exists(localVndbImgRoot))
+{
+    // registered after the general /selfhoststorage mapping so it wins for VNDB images
+    // (image export from https://vndb.org/d14, e.g. D:\vndb-img with cv/, sf/, ch/)
+    app.UseStaticFiles(new StaticFileOptions
+    {
+        FileProvider = new PhysicalFileProvider(localVndbImgRoot),
+        RequestPath = "/selfhoststorage/vndb-img",
+        ServeUnknownFileTypes = true,
+    });
+}
+
 app.UseRouting();
 app.UseRateLimiter();
 

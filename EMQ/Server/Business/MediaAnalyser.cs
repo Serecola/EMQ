@@ -297,12 +297,9 @@ public static class MediaAnalyser
                     {
                         // yeah idk about doing this here
                         await using FileStream fsSox = new(soxOut, FileMode.Open, FileAccess.Read);
-                        ServerUtils.SftpFileUpload(
-                            UploadConstants.SftpHost, UploadConstants.SftpUsername,
-                            UploadConstants.SftpPassword,
+                        UploadStorageHelper.StoreFile(
                             fsSox,
-                            Path.Combine(UploadConstants.SftpUserUploadDir, "sox", soxFilename)
-                                .Replace("\\", "/")); // imagine having to do this in 2025
+                            Path.Combine("userup", "sox", soxFilename));
                         await fsSox.DisposeAsync();
                         File.Delete(soxOut);
                     }

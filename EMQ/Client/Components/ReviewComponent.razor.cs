@@ -90,7 +90,7 @@ public partial class ReviewComponent
             if (ApplyStatusToBGMBatch &&
                 reviewingItem.Song.Sources.Any(x => x.SongTypes.Contains(SongSourceSongType.BGM)))
             {
-                foreach (RQ rq in BGMBatch.Reverse())
+                foreach (RQ rq in System.Linq.Enumerable.Reverse(BGMBatch))
                 {
                     await ReviewQueueComponent!.SendUpdateReviewQueueItem(rq, rq.reason, ReviewQueueStatus.Rejected);
                 }
@@ -121,7 +121,7 @@ public partial class ReviewComponent
             if (ApplyStatusToBGMBatch &&
                 reviewingItem.Song.Sources.Any(x => x.SongTypes.Contains(SongSourceSongType.BGM)))
             {
-                foreach (RQ rq in BGMBatch.Reverse())
+                foreach (RQ rq in System.Linq.Enumerable.Reverse(BGMBatch))
                 {
                     await ReviewQueueComponent!.SendUpdateReviewQueueItem(rq, rq.reason, ReviewQueueStatus.Pending);
                 }
@@ -153,7 +153,7 @@ public partial class ReviewComponent
             if (ApplyStatusToBGMBatch &&
                 reviewingItem.Song.Sources.Any(x => x.SongTypes.Contains(SongSourceSongType.BGM)))
             {
-                foreach (RQ rq in BGMBatch.Reverse())
+                foreach (RQ rq in System.Linq.Enumerable.Reverse(BGMBatch))
                 {
                     await ReviewQueueComponent!.SendUpdateReviewQueueItem(rq, rq.reason, ReviewQueueStatus.Approved);
                 }
@@ -252,7 +252,7 @@ public partial class ReviewComponent
 
     private async Task ApplyDetailsToBGMBatch()
     {
-        foreach (RQ rq in BGMBatch.Reverse())
+        foreach (RQ rq in System.Linq.Enumerable.Reverse(BGMBatch))
         {
             bool success = await SendEditSongLinkDetailsReq(new RQ()
             {

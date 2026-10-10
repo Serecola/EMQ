@@ -48,14 +48,20 @@ public class Avatar
 
         if (!string.IsNullOrWhiteSpace(avatar.Skin))
         {
+            // VNDB character images are served from the local export folder in dev: the browser is
+            // loaded from the same origin as the server, which maps /selfhoststorage/vndb-img to
+            // EMQ_LOCAL_VNDBIMG_DIR (e.g. D:\Coding\EMQFiles\vndb-img). A root-relative URL hits that
+            // in dev and resolves to the same https://erogemusicquiz.com/selfhoststorage/... in production.
+            if (avatar.Character is AvatarCharacter.VNDBCharacterImage)
+            {
+                (string modStr, int number) = Utils.ParseVndbScreenshotStr(avatar.Skin);
+                return $"/selfhoststorage/vndb-img/ch/{modStr}/{number}.jpg";
+            }
+
             string? databaseStr = null;
             string? extensionStr = null;
             switch (avatar.Character)
             {
-                case AvatarCharacter.VNDBCharacterImage:
-                    databaseStr = "vndb-img";
-                    extensionStr = "jpg";
-                    break;
                 case AvatarCharacter.MALCharacterImage:
                     databaseStr = "mal-img";
                     extensionStr = "webp";
@@ -67,7 +73,6 @@ public class Avatar
             if (databaseStr != null)
             {
                 (string modStr, int number) = Utils.ParseVndbScreenshotStr(avatar.Skin);
-                // can't use ReplaceSelfhostLink here because we don't have the ENV variables set on the browser
                 return $"{Constants.WebsiteDomain}/selfhoststorage/{databaseStr}/ch/{modStr}/{number}.{extensionStr}";
             }
         }

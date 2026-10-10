@@ -176,10 +176,8 @@ public sealed class NekobakoController : ControllerBase
 
                 // todo this sometimes fails without reporting any errors
                 // todo split files into multiple dirs
-                ServerUtils.SftpFileUpload(
-                    UploadConstants.SftpHost, UploadConstants.SftpUsername,
-                    UploadConstants.SftpPassword,
-                    fs, $"{UploadConstants.SftpUserUploadDir}nekobako/{storedFileName}");
+                UploadStorageHelper.StoreFile(
+                    fs, Path.Combine("userup", "nekobako", storedFileName));
                 await transactionAuth.CommitAsync(cancellationToken);
             }
 

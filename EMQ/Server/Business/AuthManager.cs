@@ -275,7 +275,8 @@ Please ignore this email if you have not tried to sign up over at {websiteDomain
                 roles = UserRoleKind.User,
                 created_at = DateTime.UtcNow,
                 salt = saltStr,
-                hash = hashStr
+                hash = hashStr,
+                exc_perm = AuthStuff.DefaultExcludedPermissionsForNewUsers.ToArray(),
             };
         }
         else
