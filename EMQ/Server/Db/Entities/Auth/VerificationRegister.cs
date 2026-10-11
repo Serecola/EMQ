@@ -22,4 +22,9 @@ public class VerificationRegister
 
     [Required]
     public DateTime created_at { get; set; }
+
+    [Required]
+    public int resend_count { get; set; }
+
+    public string? ip { get; set; }
 }

@@ -16,6 +16,14 @@ public static class AuthStuff // todo? find better name
 
     public const int ResetPasswordTokenValidMinutes = 60;
 
+    public const int MaxForgottenPasswordResends = 3;
+
+    public const int MaxRegisterResends = 1;
+
+    // At most one registration per IP per 24 hours (pending verifications and recently
+    // created accounts both count). Independent of the resend cap above.
+    public static readonly TimeSpan RegisterPerIpWindow = TimeSpan.FromHours(24);
+
     public const int UnregisterTokenValidMinutes = 60;
 
     public const int UnregisterDays = 7;

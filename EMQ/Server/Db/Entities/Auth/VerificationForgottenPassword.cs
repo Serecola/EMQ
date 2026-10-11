@@ -19,4 +19,7 @@ public class VerificationForgottenPassword
 
     [Required]
     public DateTime created_at { get; set; }
+
+    [Required]
+    public int resend_count { get; set; }
 }

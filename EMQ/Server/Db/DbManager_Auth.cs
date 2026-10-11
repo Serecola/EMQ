@@ -72,6 +72,69 @@ public class DbManager_Auth
         }
     }
 
+    public static async Task<VerificationRegister?> GetVerificationRegisterByEmail(string email)
+    {
+        const string sql =
+            "SELECT * from verification_register where lower(email) = lower(@email) LIMIT 1";
+        await using (var connection = new NpgsqlConnection(ConnectionHelper.GetConnectionString_Auth()))
+        {
+            return await connection.QuerySingleOrDefaultAsync<VerificationRegister?>(sql, new { email });
+        }
+    }
+
+    public static async Task<VerificationRegister?> GetVerificationRegisterByUsernameOrEmail(
+        string username, string email)
+    {
+        const string sql =
+            "SELECT * from verification_register where lower(username) = lower(@username) OR lower(email) = lower(@email) LIMIT 1";
+        await using (var connection = new NpgsqlConnection(ConnectionHelper.GetConnectionString_Auth()))
+        {
+            return await connection.QuerySingleOrDefaultAsync<VerificationRegister?>(sql, new { username, email });
+        }
+    }
+
+    public static async Task DeleteVerificationRegisterByUsernameOrEmail(string username, string email)
+    {
+        const string sql =
+            "DELETE from verification_register where lower(username) = lower(@username) OR lower(email) = lower(@email)";
+        await using (var connection = new NpgsqlConnection(ConnectionHelper.GetConnectionString_Auth()))
+        {
+            await connection.ExecuteAsync(sql, new { username, email });
+        }
+    }
+
+    // At most one registration per IP per 24 hours. Pending (uncompleted) verifications
+    // and recently completed accounts both count, so throwing away the email doesn't help.
+    // The caller's own pending row is excluded so a resend isn't blocked by its own existence.
+    public static async Task<bool> IsIpAllowedToRegister(string? ip, string username, string email)
+    {
+        if (string.IsNullOrWhiteSpace(ip))
+        {
+            return true; // can't attribute, don't block legitimate signups behind broken proxy headers
+        }
+
+        await using (var connection = new NpgsqlConnection(ConnectionHelper.GetConnectionString_Auth()))
+        {
+            const string sqlPending =
+                "SELECT count(*) from verification_register where ip = @ip AND created_at > (select now()) - interval '24 hours' AND NOT (lower(username) = lower(@username) AND lower(email) = lower(@email))";
+            int pending = await connection.ExecuteScalarAsync<int>(sqlPending, new { ip, username, email });
+            if (pending > 0)
+            {
+                return false;
+            }
+
+            const string sqlRecentUsers =
+                "SELECT count(*) from secret where ip_created = @ip AND created_at > (select now()) - interval '24 hours'";
+            int recentUsers = await connection.ExecuteScalarAsync<int>(sqlRecentUsers, new { ip });
+            if (recentUsers > 0)
+            {
+                return false;
+            }
+
+            return true;
+        }
+    }
+
     public static async Task<int> DeleteExpiredVerificationRows()
     {
         int totalAffectedRows = 0;
@@ -144,6 +207,25 @@ public class DbManager_Auth
         {
             return await connection.QuerySingleOrDefaultAsync<VerificationForgottenPassword?>(sql,
                 new { userId, token });
+        }
+    }
+
+    public static async Task<VerificationForgottenPassword?> GetVerificationForgottenPasswordByUserId(int userId)
+    {
+        const string sql = "SELECT * from verification_forgottenpassword where user_id = @userId";
+        await using (var connection = new NpgsqlConnection(ConnectionHelper.GetConnectionString_Auth()))
+        {
+            return await connection.QuerySingleOrDefaultAsync<VerificationForgottenPassword?>(sql,
+                new { userId });
+        }
+    }
+
+    public static async Task<bool> DeleteVerificationForgottenPasswordByUserId(int userId)
+    {
+        const string sql = "DELETE from verification_forgottenpassword where user_id = @userId";
+        await using (var connection = new NpgsqlConnection(ConnectionHelper.GetConnectionString_Auth()))
+        {
+            return await connection.ExecuteAsync(sql, new { userId }) > 0;
         }
     }
 

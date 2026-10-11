@@ -123,7 +123,7 @@ public static class AuthManager
         return RegexPatterns.EmailRegexCompiled.IsMatch(str);
     }
 
-    public static async Task<bool> RegisterStep1SendEmail(string username, string email)
+    public static async Task<bool> RegisterStep1SendEmail(string username, string email, string? ip)
     {
         if (!IsValidUsername(username))
         {
@@ -137,7 +137,23 @@ public static class AuthManager
 
         if (!await DbManager_Auth.IsUsernameAvailable(username))
         {
-            return false;
+            // A retry of your own still-valid pending registration goes through the resend
+            // path in SendEmail_Register instead of being rejected here.
+            bool isOwnPendingRetry =
+                await DbManager_Auth.GetVerificationRegister(username) is { } ownPending &&
+                string.Equals(ownPending.email, email, StringComparison.OrdinalIgnoreCase);
+            if (!isOwnPendingRetry)
+            {
+                return false;
+            }
+        }
+
+        // One registration per IP per 24 hours (completed accounts and pending verifications both count).
+        // Your own pending row doesn't count against you, or you'd be locked out of your own resend.
+        if (!await DbManager_Auth.IsIpAllowedToRegister(ip, username, email))
+        {
+            Console.WriteLine($"Skipping registration email to {email}: IP registration limit reached for {ip}");
+            return true; // same return as success to avoid leaking which IPs recently registered
         }
 
         var stopWatch = new Stopwatch();
@@ -146,7 +162,7 @@ public static class AuthManager
         var user = await DbManager_Auth.FindUserByEmail(email);
         if (user is null)
         {
-            await SendEmail_Register(username, email);
+            await SendEmail_Register(username, email, ip);
         }
         else
         {
@@ -161,17 +177,45 @@ public static class AuthManager
         return true;
     }
 
-    private static async Task SendEmail_Register(string username, string email)
+    private static async Task SendEmail_Register(string username, string email, string? ip)
     {
         string toName = username;
         string toAddress = email;
         const string subject = "Registration confirmation";
         string websiteDomainNoProtocol = Constants.WebsiteDomainNoProtocol;
 
+        // Replace any existing registration row (same username or email) instead of violating
+        // the UNIQUE(username)/UNIQUE(email) constraints. This unblocks users whose first
+        // email was lost. Allow at most MaxRegisterResends resends of a still-valid token.
+        VerificationRegister? existing = await DbManager_Auth.GetVerificationRegisterByUsernameOrEmail(username, email);
+        int resendCount = 0;
+        if (existing is not null)
+        {
+            bool stillValid = (DateTime.UtcNow - existing.created_at) <=
+                              TimeSpan.FromMinutes(AuthStuff.RegisterTokenValidMinutes);
+            if (stillValid && existing.resend_count >= AuthStuff.MaxRegisterResends)
+            {
+                Console.WriteLine(
+                    $"Skipping Register email to {toAddress}: resend limit reached for {username}/{email}");
+                return;
+            }
+
+            // Carry the count forward so the limit actually accumulates across resends.
+            // An expired row resets the counter since the user must start over anyway.
+            resendCount = stillValid ? existing.resend_count + 1 : 0;
+
+            await DbManager_Auth.DeleteVerificationRegisterByUsernameOrEmail(username, email);
+        }
+
         var registrationToken = Guid.NewGuid();
         int verificationRegisterId = (int)await DbManager_Auth.InsertEntity_Auth(new VerificationRegister
         {
-            username = username, email = email, token = registrationToken.ToString(), created_at = DateTime.UtcNow
+            username = username,
+            email = email,
+            token = registrationToken.ToString(),
+            created_at = DateTime.UtcNow,
+            resend_count = resendCount,
+            ip = ip,
         });
 
         if (verificationRegisterId <= 0)
@@ -403,13 +447,39 @@ Please ignore this email if you have not tried to sign up over at {websiteDomain
         const string subject = "Reset password";
         string websiteDomainNoProtocol = Constants.WebsiteDomainNoProtocol;
 
-        // todo? check with user_id before inserting
-        var resetToken = Guid.NewGuid();
-        int verificationForgottenPasswordId = (int)await DbManager_Auth.InsertEntity_Auth(
-            new VerificationForgottenPassword
+        // Replace any existing reset row instead of violating the UNIQUE(user_id) constraint.
+        // Allow at most MaxForgottenPasswordResends resends of a still-valid token; after that,
+        // stop sending new emails until the existing token expires or is used.
+        VerificationForgottenPassword? existing =
+            await DbManager_Auth.GetVerificationForgottenPasswordByUserId(user.id);
+        int resendCount = 0;
+        if (existing is not null)
+        {
+            bool stillValid = (DateTime.UtcNow - existing.created_at) <=
+                              TimeSpan.FromMinutes(AuthStuff.ResetPasswordTokenValidMinutes);
+            if (stillValid && existing.resend_count >= AuthStuff.MaxForgottenPasswordResends)
             {
-                user_id = user.id, token = resetToken.ToString(), created_at = DateTime.UtcNow
-            });
+                Console.WriteLine(
+                    $"Skipping ForgottenPassword email to {toAddress}: resend limit reached for user {user.id}");
+                return;
+            }
+
+            // Carry the count forward so the limit actually accumulates across resends.
+            // An expired row resets the counter since the user must start over anyway.
+            resendCount = stillValid ? existing.resend_count + 1 : 0;
+
+            await DbManager_Auth.DeleteVerificationForgottenPasswordByUserId(user.id);
+        }
+
+        var resetToken = Guid.NewGuid();
+        var entity = new VerificationForgottenPassword
+        {
+            user_id = user.id,
+            token = resetToken.ToString(),
+            created_at = DateTime.UtcNow,
+            resend_count = resendCount
+        };
+        int verificationForgottenPasswordId = (int)await DbManager_Auth.InsertEntity_Auth(entity);
 
         if (verificationForgottenPasswordId <= 0)
         {

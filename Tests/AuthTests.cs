@@ -22,7 +22,7 @@ public class AuthTests
             string email = $"{username}@example.com";
             string newPassword = "averyveryverylongpassword";
 
-            bool isValid = await AuthManager.RegisterStep1SendEmail(username, email);
+            bool isValid = await AuthManager.RegisterStep1SendEmail(username, email, null);
             Assert.That(isValid); // valid can also mean that the duplicate email was sent
 
             var verificationRegister = await DbManager_Auth.GetVerificationRegister(username);
@@ -113,7 +113,7 @@ public class AuthTests
         string email = $"{username}@example.com";
         string newPassword = "averyveryverylongpassword";
 
-        bool isValid = await AuthManager.RegisterStep1SendEmail(username, email);
+        bool isValid = await AuthManager.RegisterStep1SendEmail(username, email, null);
         Assert.That(isValid); // valid can also mean that the duplicate email was sent
 
         var verificationRegister = await DbManager_Auth.GetVerificationRegister(username);

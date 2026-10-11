@@ -538,7 +538,8 @@ public class AuthController : ControllerBase
             return StatusCode((int)HttpStatusCode.PaymentRequired);
         }
 
-        bool isValid = await AuthManager.RegisterStep1SendEmail(req.Username, req.Email);
+        string? ip = ServerUtils.GetIpAddress(Request.HttpContext);
+        bool isValid = await AuthManager.RegisterStep1SendEmail(req.Username, req.Email, ip);
         if (!isValid)
         {
             return Unauthorized();
