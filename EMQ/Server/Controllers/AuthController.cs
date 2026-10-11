@@ -566,9 +566,14 @@ public class AuthController : ControllerBase
 
         Secret secret = await AuthManager.CreateSecret(userId, ip);
         var reqCreateSession = new ReqCreateSession(userId, secret.token.ToString());
-        var session = (await CreateSession(reqCreateSession)).Value!.Session;
+        var resCreateSession = await CreateSession(reqCreateSession);
+        if (resCreateSession.Value is null)
+        {
+            // session for the new user could not be created; do not dereference .Value (NRE -> 500)
+            return Unauthorized();
+        }
 
-        return session;
+        return resCreateSession.Value.Session;
     }
 
     [EnableRateLimiting(RateLimitKind.Login)]
@@ -594,9 +599,13 @@ public class AuthController : ControllerBase
         Secret secret = await AuthManager.CreateSecret(userId, ip);
 
         var reqCreateSession = new ReqCreateSession(userId, secret.token.ToString());
-        var session = (await CreateSession(reqCreateSession)).Value!.Session;
+        var resCreateSession = await CreateSession(reqCreateSession);
+        if (resCreateSession.Value is null)
+        {
+            return Unauthorized();
+        }
 
-        return session;
+        return resCreateSession.Value.Session;
     }
 
     [EnableRateLimiting(RateLimitKind.ForgottenPassword)]
@@ -634,9 +643,13 @@ public class AuthController : ControllerBase
         Secret secret = await AuthManager.CreateSecret(userId, ip);
 
         var reqCreateSession = new ReqCreateSession(userId, secret.token.ToString());
-        var session = (await CreateSession(reqCreateSession)).Value!.Session;
+        var resCreateSession = await CreateSession(reqCreateSession);
+        if (resCreateSession.Value is null)
+        {
+            return Unauthorized();
+        }
 
-        return session;
+        return resCreateSession.Value.Session;
     }
 
     [EnableRateLimiting(RateLimitKind.ForgottenPassword)]

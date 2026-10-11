@@ -293,13 +293,21 @@ Please ignore this email if you have not tried to sign up over at {websiteDomain
             return userId;
         }
 
-        if (!await DbManager_Auth.DeleteEntity_Auth(verificationRegister))
+        // validate everything that can reject the request BEFORE consuming the token,
+        // otherwise a single failed attempt permanently invalidates the registration link
+        if ((DateTime.UtcNow - verificationRegister.created_at) >
+            TimeSpan.FromMinutes(AuthStuff.RegisterTokenValidMinutes))
         {
             return userId;
         }
 
-        if ((DateTime.UtcNow - verificationRegister.created_at) >
-            TimeSpan.FromMinutes(AuthStuff.RegisterTokenValidMinutes))
+        var existingUser = await DbManager_Auth.FindUserByUsername(username);
+        if (existingUser is not null)
+        {
+            return userId;
+        }
+
+        if (!await DbManager_Auth.DeleteEntity_Auth(verificationRegister))
         {
             return userId;
         }
@@ -309,24 +317,16 @@ Please ignore this email if you have not tried to sign up over at {websiteDomain
         string saltStr = Convert.ToHexString(saltBytes);
         string hashStr = Convert.ToHexString(hashBytes);
 
-        var user = await DbManager_Auth.FindUserByUsername(username);
-        if (user is null)
+        var user = new User
         {
-            user = new User
-            {
-                username = username,
-                email = verificationRegister.email,
-                roles = UserRoleKind.User,
-                created_at = DateTime.UtcNow,
-                salt = saltStr,
-                hash = hashStr,
-                exc_perm = AuthStuff.DefaultExcludedPermissionsForNewUsers.ToArray(),
-            };
-        }
-        else
-        {
-            throw new Exception("User already exists."); // todo?
-        }
+            username = username,
+            email = verificationRegister.email,
+            roles = UserRoleKind.User,
+            created_at = DateTime.UtcNow,
+            salt = saltStr,
+            hash = hashStr,
+            exc_perm = AuthStuff.DefaultExcludedPermissionsForNewUsers.ToArray(),
+        };
 
         userId = (int)await DbManager_Auth.InsertEntity_Auth(user);
         if (userId <= 0)
@@ -526,31 +526,31 @@ Please ignore this email if you did not initiate this action over at {websiteDom
             return ret;
         }
 
-        if (!await DbManager_Auth.DeleteEntity_Auth(verificationForgottenPassword))
-        {
-            return ret;
-        }
-
+        // validate everything that can reject the request BEFORE consuming the token,
+        // otherwise a single failed attempt permanently invalidates the reset link
         if ((DateTime.UtcNow - verificationForgottenPassword.created_at) >
             TimeSpan.FromMinutes(AuthStuff.ResetPasswordTokenValidMinutes))
         {
             return ret;
         }
 
+        var user = await DbManager_Auth.GetEntity_Auth<User>(userId);
+        if (user is null)
+        {
+            return ret;
+        }
+
+        if (!await DbManager_Auth.DeleteEntity_Auth(verificationForgottenPassword))
+        {
+            return ret;
+        }
+
+        ret = user.id;
+
         byte[] saltBytes = CryptoUtils.GenerateSalt();
         byte[] hashBytes = CryptoUtils.HashPassword(newPassword, saltBytes);
         string saltStr = Convert.ToHexString(saltBytes);
         string hashStr = Convert.ToHexString(hashBytes);
-
-        var user = await DbManager_Auth.GetEntity_Auth<User>(userId);
-        if (user is null)
-        {
-            throw new Exception("User doesn't exist."); // todo?
-        }
-        else
-        {
-            ret = user.id;
-        }
 
         user.salt = saltStr;
         user.hash = hashStr;

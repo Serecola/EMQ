@@ -49,6 +49,7 @@ public static class DbManager
         stopwatch.StartSection("init");
         SqlMapper.AddTypeHandler(typeof(MediaAnalyserResult), new JsonTypeHandler());
         SqlMapper.AddTypeHandler(new GenericArrayHandler<int>());
+        SqlMapper.AddTypeHandler(new PermissionKindArrayHandler());
         SqlMapper.AddTypeHandler(new TimeMultiRangeHandler());
         SqlMapper.AddTypeHandler(typeof(List<SongSourceDeveloper>), new JsonTypeHandler());
 
