@@ -195,6 +195,10 @@
                         <InputSelect id="ScreenshotKind" @bind-Value="ClientQuizSettings.Filters.ScreenshotKind" style="margin: 5px">
                             @foreach (ScreenshotKind screenshotKind in Enum.GetValues<ScreenshotKind>())
                             {
+                                if (screenshotKind == ScreenshotKind.VNCoverBlurredText)
+                                {
+                                    continue;
+                                }
                                 <option value="@screenshotKind">
                                     @if (!string.IsNullOrEmpty(screenshotKind.GetDescription()))
                                     {

@@ -3147,6 +3147,11 @@ RETURNING id;",
         int lastIndex = 0;
         var songsDict = new Dictionary<int, Song>();
         int totalSelected = 0;
+        // vndb ids known to have (or lack) a guess-phase image for the active ScreenshotKind;
+        // populated lazily per hydration chunk so non-screenshot quizzes pay nothing
+        var vndbScreenshotImageCache = new Dictionary<string, bool>();
+        bool doScreenshotImageCheck = songSelectionKind != SongSelectionKind.Looting &&
+                                      filters?.ScreenshotKind is not null and not ScreenshotKind.None;
         foreach ((int mId, int msId) in ids)
         {
             if (ret.Count >= numSongs ||
@@ -3170,6 +3175,28 @@ RETURNING id;",
                     exists = songsDict.TryGetValue(mId, out song);
                     lastIndex += 1;
                     // Console.WriteLine($"lastIndex: {lastIndex}");
+
+                    // batch the VNDB existence check once per hydration chunk instead of per song
+                    if (doScreenshotImageCheck)
+                    {
+                        string[] uncachedVndbIds = d.Values
+                            .SelectMany(x => x.Sources)
+                            .Where(x => x.Type == SongSourceType.VN)
+                            .SelectMany(x => x.Links)
+                            .Where(x => x.Type == SongSourceLinkType.VNDB)
+                            .Select(x => x.Url.ToVndbId())
+                            .Where(x => !vndbScreenshotImageCache.ContainsKey(x))
+                            .Distinct()
+                            .ToArray();
+                        if (uncachedVndbIds.Any())
+                        {
+                            foreach ((string key, bool value) in await GetVndbIdsWithScreenshotImage(
+                                         uncachedVndbIds, filters!.ScreenshotKind, filters.VndbCharRoleKindFilter))
+                            {
+                                vndbScreenshotImageCache[key] = value;
+                            }
+                        }
+                    }
                 }
 
                 totalSelected += 1;
@@ -3258,6 +3285,27 @@ RETURNING id;",
                         LabelKind.Exclude when hasVocals => false,
                         _ => canAdd
                     };
+                }
+
+                // Screenshots (Source, Source Cover, etc.) only make sense for sources that actually
+                // have an image; skip songs whose guess-phase source has none.
+                // Mirrors EnterQuiz guess-phase semantics: only the first source gets a screenshot.
+                if (canAdd && doScreenshotImageCheck)
+                {
+                    SongSource firstSource = song!.Sources.First();
+                    if (firstSource.Type == SongSourceType.VN)
+                    {
+                        string? vndbId = firstSource.Links
+                            .FirstOrDefault(x => x.Type == SongSourceLinkType.VNDB)?.Url.ToVndbId();
+                        if (vndbId == null)
+                        {
+                            canAdd = false;
+                        }
+                        else
+                        {
+                            canAdd = !vndbScreenshotImageCache.TryGetValue(vndbId, out bool hasImage) || hasImage;
+                        }
+                    }
                 }
 
                 bool isDuplicate = addedMsIds.Contains(msId);
@@ -5721,6 +5769,83 @@ LEFT JOIN artist a ON a.id = aa.artist_id
         {
             return -1;
         }
+    }
+
+    /// <summary>
+    /// Batch existence check for VN guess-phase images, keyed by vndb id ("v1234").
+    /// Strict per-kind semantics mirroring GetRandomScreenshotUrl: VN needs a vn_screenshots row,
+    /// VNPreferExplicit needs one joined to an explicit image (images.c_sexual_avg greater than 100),
+    /// VNCover and VNCoverBlurredText need vn.image or vn.c_image, Character needs a chars row with
+    /// a non-null image matching the enabled roles.
+    /// Ignores the anti-spam exclusion list (selection time has no play history yet).
+    /// </summary>
+    private static async Task<Dictionary<string, bool>> GetVndbIdsWithScreenshotImage(string[] vndbIds,
+        ScreenshotKind screenshotKind, Dictionary<VndbCharRoleKind, bool>? vndbCharRoles)
+    {
+        var ret = vndbIds.Distinct().ToDictionary(x => x, _ => false);
+        string[] distinctIds = ret.Keys.ToArray();
+        if (distinctIds.Length == 0)
+        {
+            return ret;
+        }
+
+        await using var connection = new NpgsqlConnection(ConnectionHelper.GetConnectionString_Vndb());
+        switch (screenshotKind)
+        {
+            case ScreenshotKind.VN:
+                foreach (string id in await connection.QueryAsync<string>(
+                             "SELECT DISTINCT id from vn_screenshots where id = ANY(@ids)", new { ids = distinctIds }))
+                {
+                    ret[id] = true;
+                }
+
+                break;
+            case ScreenshotKind.VNPreferExplicit:
+                foreach (string id in await connection.QueryAsync<string>(
+                             @"SELECT DISTINCT vs.id from vn_screenshots vs join images i on i.id = vs.scr
+                                where vs.id = ANY(@ids) and i.c_sexual_avg > 100", new { ids = distinctIds }))
+                {
+                    ret[id] = true;
+                }
+
+                break;
+            case ScreenshotKind.VNCover:
+            case ScreenshotKind.VNCoverBlurredText:
+                foreach (string id in await connection.QueryAsync<string>(
+                             "SELECT id from vn where id = ANY(@ids) and (image is not null or c_image is not null)",
+                             new { ids = distinctIds }))
+                {
+                    ret[id] = true;
+                }
+
+                break;
+            case ScreenshotKind.Character:
+            {
+                string[]? role = vndbCharRoles?.Where(x => x.Value)
+                    .Select(x => x.Key.ToString().ToLowerInvariant())
+                    .ToArray() ?? null;
+                if (role != null && role.Length == 0)
+                {
+                    break;
+                }
+
+                foreach (string id in await connection.QueryAsync<string>(
+                             @"SELECT DISTINCT v.id from vn v join chars_vns cv on cv.vid = v.id join chars c on c.id = cv.id
+                                where v.id = ANY(@ids) and c.image is not null
+                                and ((@role::char_role[] IS NULL) or cv.role = ANY(@role::char_role[]))",
+                             new { ids = distinctIds, role }))
+                {
+                    ret[id] = true;
+                }
+
+                break;
+            }
+            case ScreenshotKind.None:
+            default:
+                throw new ArgumentOutOfRangeException(nameof(screenshotKind));
+        }
+
+        return ret;
     }
 
     public static async Task<string> GetRandomScreenshotUrl(SongSource songSource, ScreenshotKind screenshotKind,
