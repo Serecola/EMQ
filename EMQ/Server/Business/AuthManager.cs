@@ -166,7 +166,7 @@ public static class AuthManager
         string toName = username;
         string toAddress = email;
         const string subject = "Registration confirmation";
-        const string websiteDomainNoProtocol = Constants.WebsiteDomainNoProtocol;
+        string websiteDomainNoProtocol = Constants.WebsiteDomainNoProtocol;
 
         var registrationToken = Guid.NewGuid();
         int verificationRegisterId = (int)await DbManager_Auth.InsertEntity_Auth(new VerificationRegister
@@ -206,7 +206,7 @@ Please ignore this email if you have not signed up over at {websiteDomainNoProto
         string toName = username;
         string toAddress = email;
         const string subject = "Already registered";
-        const string websiteDomainNoProtocol = Constants.WebsiteDomainNoProtocol;
+        string websiteDomainNoProtocol = Constants.WebsiteDomainNoProtocol;
 
         string passwordResetLink = $"{Constants.WebsiteDomain}/ForgottenPasswordPage";
 
@@ -401,7 +401,7 @@ Please ignore this email if you have not tried to sign up over at {websiteDomain
         string toName = user.username;
         string toAddress = user.email;
         const string subject = "Reset password";
-        const string websiteDomainNoProtocol = Constants.WebsiteDomainNoProtocol;
+        string websiteDomainNoProtocol = Constants.WebsiteDomainNoProtocol;
 
         // todo? check with user_id before inserting
         var resetToken = Guid.NewGuid();
@@ -519,7 +519,7 @@ Please ignore this email if you did not initiate this action over at {websiteDom
         string toName = user.username;
         string toAddress = user.email;
         const string subject = "Confirm account deletion";
-        const string websiteDomainNoProtocol = Constants.WebsiteDomainNoProtocol;
+        string websiteDomainNoProtocol = Constants.WebsiteDomainNoProtocol;
 
         var token = Guid.NewGuid();
         int verificationId = (int)await DbManager_Auth.InsertEntity_Auth(
@@ -597,7 +597,7 @@ Please click the link below to start the account deletion process:
         string toName = user.username;
         string toAddress = user.email;
         const string subject = "Account marked for deletion";
-        const string websiteDomainNoProtocol = Constants.WebsiteDomainNoProtocol;
+        string websiteDomainNoProtocol = Constants.WebsiteDomainNoProtocol;
 
         var token = Guid.NewGuid();
         int unregisterId = (int)await DbManager_Auth.InsertEntity_Auth(
@@ -670,7 +670,7 @@ Your account has been marked for deletion, and will be deleted in {AuthStuff.Unr
         string toName = user.username;
         string toAddress = user.email;
         const string subject = "Account deletion canceled";
-        const string websiteDomainNoProtocol = Constants.WebsiteDomainNoProtocol;
+        string websiteDomainNoProtocol = Constants.WebsiteDomainNoProtocol;
         string bodyText =
             $@"Hello {user.username},
 
@@ -761,7 +761,7 @@ Your account has been unmarked for deletion, and will no longer be deleted.
         string toName = user.username;
         string toAddress = user.email;
         const string subject = "Account deleted";
-        const string websiteDomainNoProtocol = Constants.WebsiteDomainNoProtocol;
+        string websiteDomainNoProtocol = Constants.WebsiteDomainNoProtocol;
         string bodyText =
             $@"Hello {user.username},
 

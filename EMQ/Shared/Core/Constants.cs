@@ -13,9 +13,17 @@ public static class Constants
 
     public const string WebsiteName = "Eroge Music Quiz";
 
-    public const string WebsiteDomain = "https://erogemusicquiz.com";
+    // Overridable so that self-hosted instances send emails/cookies pointing at their own domain.
+    // WebsiteDomainNoProtocol falls back to being derived from WebsiteDomain so that setting a single
+    // envVar is enough (auth cookies are silently dropped by browsers when set for a foreign domain).
+    public static readonly string WebsiteDomain =
+        Environment.GetEnvironmentVariable("EMQ_WEBSITE_DOMAIN") ?? "https://erogemusicquiz.com";
 
-    public const string WebsiteDomainNoProtocol = "erogemusicquiz.com";
+    public static readonly string WebsiteDomainNoProtocol =
+        Environment.GetEnvironmentVariable("EMQ_WEBSITE_DOMAIN_NO_PROTOCOL")
+        ?? WebsiteDomain.Replace("https://", "", StringComparison.OrdinalIgnoreCase)
+            .Replace("http://", "", StringComparison.OrdinalIgnoreCase)
+            .TrimEnd('/');
 
     public const string LocalMusicLibraryPath = @"G:\Music";
 
