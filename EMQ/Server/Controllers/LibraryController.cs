@@ -418,9 +418,7 @@ public class LibraryController : ControllerBase
     public async Task<ActionResult> GetVNCoverUrl([FromQuery] string id)
     {
         string? ret = null;
-        const string sql = "SELECT image from vn where id = @id";
-        await using var connection = new NpgsqlConnection(ConnectionHelper.GetConnectionString_Vndb());
-        string? screenshot = await connection.QueryFirstOrDefaultAsync<string?>(sql, new { id });
+        string screenshot = await DbManager.GetPreferredVnCoverImageId(id, Array.Empty<string>(), "cv");
         if (!string.IsNullOrEmpty(screenshot))
         {
             (string modStr, int number) = Utils.ParseVndbScreenshotStr(screenshot);

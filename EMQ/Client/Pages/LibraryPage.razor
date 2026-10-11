@@ -64,6 +64,7 @@
     </ol>
 </details>
 
+@* [hidden for selfhost] functionality kept; delete this comment to restore
 <details>
     <summary>Batch uploader</summary>
     @if (ClientState.ServerStats.Config.IsServerReadOnly)
@@ -86,7 +87,9 @@
         }
     }
 </details>
+*@
 
+@* [hidden for selfhost] functionality kept; delete this comment to restore
 <details>
     <summary>VNDB staff notes parser</summary>
     <VndbStaffNotesParserComponent></VndbStaffNotesParserComponent>
@@ -180,6 +183,7 @@
         <p>Insufficient permissions.</p>
     }
 </details>
+*@
 
 <QuizSettingsComponent @ref="_quizSettingsComponent"
                        Room="@Room"
@@ -397,6 +401,7 @@
                     <Blazorise.TabPanel @key="@key" Name="@key">
                         @if (key != "Vocals")
                         {
+                            @* [hidden for selfhost] functionality kept; delete this comment to restore
                             <details style="margin: 5px;">
                                 <summary>Batch uploader (BGM mode)</summary>
                                 @if (ClientState.ServerStats.Config.IsServerReadOnly)
@@ -419,6 +424,7 @@
                                     }
                                 }
                             </details>
+                            *@
                             <br/>
                         }
 
@@ -438,6 +444,7 @@
 
 <br/>
 
+@* [hidden for selfhost] functionality kept; delete this comment to restore
 <Blazorise.Tabs @bind-SelectedTab="@_selectedTabQueue" RenderMode="Blazorise.TabsRenderMode.LazyReload">
     <Items>
         <Blazorise.Tab Name="TabReviewQueue">Review Queue</Blazorise.Tab>
@@ -446,18 +453,19 @@
     <Content>
         <Blazorise.TabPanel Name="TabReviewQueue">
             <div id="reviewQueueContainer" style="border: 1px solid #ddd; padding: 5px">
-                @* <h4 style="font-size: 1.2rem">Review Queue</h4> *@
+                <h4 style="font-size: 1.2rem">Review Queue</h4>
                 <ReviewQueueComponent @ref="_reviewQueueComponent"></ReviewQueueComponent>
             </div>
         </Blazorise.TabPanel>
         <Blazorise.TabPanel Name="TabEditQueue">
             <div id="editQueueContainer" style="border: 1px solid #ddd; padding: 5px">
-                @* <h4 style="font-size: 1.2rem">Edit Queue</h4> *@
+                <h4 style="font-size: 1.2rem">Edit Queue</h4>
                 <EditQueueComponent></EditQueueComponent>
             </div>
         </Blazorise.TabPanel>
     </Content>
 </Blazorise.Tabs>
+*@
 
 </CascadingValue>
 

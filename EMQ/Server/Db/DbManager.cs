@@ -5668,6 +5668,61 @@ LEFT JOIN artist a ON a.id = aa.artist_id
         }
     }
 
+    /// <summary>
+    /// Returns the preferred vn cover image id ("cv123456"), falling back between vn.image and
+    /// vn.c_image. When both exist and differ, the one with the larger file on disk wins
+    /// (falls back to `image` when sizes can't be compared, e.g. no local VNDB image export).
+    /// Returns "" when no candidate remains (e.g. all were excluded by the spam filter).
+    /// </summary>
+    public static async Task<string> GetPreferredVnCoverImageId(string vndbId, string[] exc, string subDir)
+    {
+        const string sql = "SELECT image, c_image from vn where id = @id";
+        await using var connection = new NpgsqlConnection(ConnectionHelper.GetConnectionString_Vndb());
+        (string? image, string? cImage) =
+            await connection.QuerySingleOrDefaultAsync<(string?, string?)>(sql, new { id = vndbId });
+
+        var candidates = new[] { image, cImage }
+            .Where(x => !string.IsNullOrWhiteSpace(x))
+            .Distinct()
+            .Where(x => !exc.Contains(x!)) // same anti-spam behavior as the old NOT image = ANY(@exc)
+            .ToList();
+
+        if (candidates.Count == 0)
+        {
+            return "";
+        }
+
+        if (candidates.Count == 1)
+        {
+            return candidates[0]!;
+        }
+
+        long size0 = GetLocalVndbImageSize(candidates[0]!, subDir);
+        long size1 = GetLocalVndbImageSize(candidates[1]!, subDir);
+        // equal sizes (including both unknown/missing = -1) keep the old behavior: prefer `image`
+        return size1 > size0 ? candidates[1]! : candidates[0]!;
+    }
+
+    private static long GetLocalVndbImageSize(string imageId, string subDir)
+    {
+        try
+        {
+            string? root = UploadStorageHelper.LocalVndbImgRoot;
+            if (string.IsNullOrWhiteSpace(root))
+            {
+                return -1;
+            }
+
+            (string modStr, int number) = Utils.ParseVndbScreenshotStr(imageId);
+            string path = Path.Combine(root, subDir, modStr, $"{number}.jpg");
+            return File.Exists(path) ? new FileInfo(path).Length : -1;
+        }
+        catch (Exception)
+        {
+            return -1;
+        }
+    }
+
     public static async Task<string> GetRandomScreenshotUrl(SongSource songSource, ScreenshotKind screenshotKind,
         Dictionary<VndbCharRoleKind, bool>? vndbCharRoles, int preventSameImageSpamMinutes,
         Dictionary<string, DateTime> imageLastPlayedAtDict)
@@ -5710,12 +5765,8 @@ LEFT JOIN artist a ON a.id = aa.artist_id
                             }
                         case ScreenshotKind.VNCover:
                             {
-                                const string sql = "SELECT image from vn where id = @id AND NOT image = ANY(@exc)";
-                                await using var connection =
-                                    new NpgsqlConnection(ConnectionHelper.GetConnectionString_Vndb());
-                                string? screenshot =
-                                    (await connection.QueryAsync<string?>(sql, new { id = sourceExternalId, exc }))
-                                    .Shuffle().FirstOrDefault();
+                                string screenshot =
+                                    await GetPreferredVnCoverImageId(sourceExternalId, exc, "cv");
                                 if (!string.IsNullOrEmpty(screenshot))
                                 {
                                     (string modStr, int number) = Utils.ParseVndbScreenshotStr(screenshot);
@@ -5774,12 +5825,8 @@ LEFT JOIN artist a ON a.id = aa.artist_id
                             }
                         case ScreenshotKind.VNCoverBlurredText:
                             {
-                                const string sql = "SELECT image from vn where id = @id AND NOT image = ANY(@exc)";
-                                await using var connection =
-                                    new NpgsqlConnection(ConnectionHelper.GetConnectionString_Vndb());
-                                string? screenshot =
-                                    (await connection.QueryAsync<string?>(sql, new { id = sourceExternalId, exc }))
-                                    .Shuffle().FirstOrDefault();
+                                string screenshot =
+                                    await GetPreferredVnCoverImageId(sourceExternalId, exc, "cv_blurredtext");
                                 if (!string.IsNullOrEmpty(screenshot))
                                 {
                                     (string modStr, int number) = Utils.ParseVndbScreenshotStr(screenshot);
