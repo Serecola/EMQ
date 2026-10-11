@@ -1,4 +1,6 @@
+using System;
 using System.Data;
+using System.Linq;
 using Dapper;
 using EMQ.Shared.Auth.Entities.Concrete;
 
