@@ -2,7 +2,12 @@
 
 EMQ is an [AMQ](https://animemusicquiz.com/)-like quiz game for eroge/visual novel songs.
 
-Currently running at https://erogemusicquiz.com.
+Made by [Mert](https://github.com/mertvn/), running at https://erogemusicquiz.com/.
+Support him at https://github.com/sponsors/mertvn.
+
+This repository is a fork maintained by [Serecola](https://github.com/Serecola/). 
+Currently running at https://emq.serecola.com/.
+
 
 ## Credits
 rampaa: Help with the database schema and VNDB queries

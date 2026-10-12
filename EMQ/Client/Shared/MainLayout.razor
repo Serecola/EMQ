@@ -126,6 +126,8 @@
             Timer.Elapsed += GetServerStats;
             Timer.AutoReset = true;
             Timer.Start();
+
+            _ = RunCollectionsPoller();
         }
 
         if (ClientState.ServerStats.CountdownInfo.DateTime >= DateTime.UtcNow)
@@ -171,6 +173,38 @@
         catch (Exception e)
         {
             Console.WriteLine(e);
+        }
+    }
+
+    // Poll "my collections" every 5 minutes so song-card +/- state, the collection
+    // dropdown, and profile/collection pages stay fresh even when changes come from
+    // another tab/device or from someone else editing a shared collection.
+    private async Task RunCollectionsPoller()
+    {
+        const string key = "myCollections";
+        const int periodSeconds = 300;
+        if (ClientState.Timers.TryGetValue(key, out var timer))
+        {
+            timer.Dispose();
+        }
+
+        timer = new PeriodicTimer(TimeSpan.FromSeconds(periodSeconds));
+        ClientState.Timers[key] = timer;
+        while (await timer.WaitForNextTickAsync())
+        {
+            try
+            {
+                if (ClientState.Session is null)
+                {
+                    continue;
+                }
+
+                await ClientUtils.RefreshMyCollections(_client);
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e);
+            }
         }
     }
 }

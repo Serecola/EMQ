@@ -6,6 +6,7 @@
 @inject NavigationManager _navigation
 @inject ClientUtils _clientUtils
 @inject IJSRuntime _jsRuntime
+@implements IDisposable
 
 <a class="link link-primary" href="/eco/all">Browse collections</a>
 <br/>
@@ -124,6 +125,26 @@
         ResGetCollectionContainers = null;
 
         await _clientUtils.TryRestoreSession(); // needs to be here instead of the page otherwise it runs too late
+        await RefreshCollection();
+        ClientState.CollectionsChanged += OnCollectionsChanged;
+    }
+
+    public void Dispose()
+    {
+        ClientState.CollectionsChanged -= OnCollectionsChanged;
+    }
+
+    private async void OnCollectionsChanged()
+    {
+        await InvokeAsync(async () =>
+        {
+            await RefreshCollection();
+            StateHasChanged();
+        });
+    }
+
+    private async Task RefreshCollection()
+    {
         HttpResponseMessage res1 = await _client.PostAsJsonAsync("Library/GetCollectionContainers", new List<int>() { CollectionId });
         if (res1.IsSuccessStatusCode)
         {

@@ -5,7 +5,7 @@
 
 <div class="top-row ps-3 navbar navbar-dark">
     <div class="container-fluid">
-        <a class="navbar-brand" href="">EMQ</a>
+        <a class="navbar-brand" href="">EMQ (Fork)</a>
         <button type="button" title="Navigation menu" class="navbar-toggler" @onclick="ToggleNavMenu">
             <span class="navbar-toggler-icon"></span>
         </button>
@@ -67,15 +67,13 @@
         </ul>
     </div>
     <div style="position: absolute; bottom: 5px; left: 5px;">
+        <a href="https://erogemusicquiz.com/">Original Site</a>
         <a href="https://discord.com/invite/jKFGavUdff">Discord</a>
-        <br/>
-        <a href="https://dl.erogemusicquiz.com/dump/song/">Dumps</a>
-        <br/>
-        <a href="https://kuery.erogemusicquiz.com">Query</a>
+        <a href="https://github.com/mertvn/EMQ/">Original Repo</a>
         <br/>
 
         @{
-            string href = $"https://github.com/mertvn/EMQ/commit/{ClientState.ServerStats.GitHash}";
+            string href = $"https://github.com/Serecola/EMQ/commit/{ClientState.ServerStats.GitHash}";
         }
         <a href="@href" target="_blank">#@ClientState.ServerStats.GitHash</a>
         <br/>

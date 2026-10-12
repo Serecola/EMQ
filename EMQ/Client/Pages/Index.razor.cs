@@ -132,22 +132,7 @@ public partial class Index
 
                         LoginProgressDisplay.Add($"Fetching collections...");
                         StateHasChanged();
-                        HttpResponseMessage resCollections =
-                            await _client.PostAsJsonAsync("Library/GetUserCollections", ClientState.Session.Player.Id);
-                        if (resCollections.IsSuccessStatusCode)
-                        {
-                            HttpResponseMessage resCollectionContainers =
-                                await _client.PostAsJsonAsync("Library/GetCollectionContainers",
-                                    await resCollections.Content.ReadFromJsonAsync<int[]>());
-                            if (resCollectionContainers.IsSuccessStatusCode)
-                            {
-                                ClientState.ResGetCollectionContainers =
-                                    (await resCollectionContainers.Content
-                                        .ReadFromJsonAsync<ResGetCollectionContainers>())!;
-                                ClientState.SelectedCollectionId = ClientState.ResGetCollectionContainers
-                                    .CollectionContainers.FirstOrDefault()?.Collection.id ?? 0;
-                            }
-                        }
+                        await ClientUtils.RefreshMyCollections(_client);
                     }
 
                     LoginProgressDisplay.Add($"Successfully logged in.");

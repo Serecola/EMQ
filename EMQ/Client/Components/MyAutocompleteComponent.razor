@@ -27,7 +27,9 @@
            @onkeydown="OnKeyDown"
            @onkeydown:preventDefault="ClientState.Preferences.AutocompleteIsEnabled && PreventDefault"
            @onfocus="OnFocus"
-           @onblur="OnBlur"/>
+           @onblur="OnBlur"
+           @oncompositionstart="OnCompositionStart"
+           @oncompositionend="OnCompositionEnd"/>
 
     <div class="autocomplete-items" tabindex="1"
          style="display: @UiHelpers.Bool2Display(ClientState.Preferences.AutocompleteIsEnabled && ShowDropdown && CurrentSearchResults.Any()); max-height: @MaxMenuHeight; overflow-x: auto; overflow-y: scroll;">

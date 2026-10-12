@@ -141,6 +141,10 @@
             <label for="AutocompleteIsEnabled">Enabled</label>
             <br/>
 
+            <InputCheckbox id="AutocompleteInputAutoSubmit" class="form-check-input" @bind-Value="ClientState.Preferences.AutocompleteInputAutoSubmit" style="margin: 5px"></InputCheckbox>
+            <label for="AutocompleteInputAutoSubmit">Input auto submit</label>
+            <br/>
+
             <InputCheckbox id="AutocompleteHighlightMatch" class="form-check-input" @bind-Value="ClientState.Preferences.AutocompleteHighlightMatch" style="margin: 5px"></InputCheckbox>
             <label for="AutocompleteHighlightMatch">Highlight matching text</label>
             <br/>
@@ -156,7 +160,7 @@
 
     </Blazorise.TabPanel>
     <Blazorise.TabPanel Name="TabLists">
-    @if (!ClientState.ServerStats.Config.IsHardened || AuthStuff.HasPermission(ClientState.Session, PermissionKind.User))
+    @if (!ClientState.ServerStats.Config.IsHardened || AuthStuff.HasPermission(ClientState.Session, PermissionKind.Guest))
     {
         <div>
             <ul>
@@ -292,7 +296,7 @@
                 {
                     if (vndbInfo is null)
                     {
-                        @if (databaseKind is not UserListDatabaseKind.MAL || AuthStuff.HasPermission(ClientState.Session, PermissionKind.User))
+                        @if (databaseKind is not UserListDatabaseKind.MAL || AuthStuff.HasPermission(ClientState.Session, PermissionKind.Guest))
                         {
                             <br/>
                             <button type="button" class="btn btn-success" @onclick="@(() => ClientState.VndbInfo.Add(new PlayerVndbInfo() { DatabaseKind = databaseKind }))">

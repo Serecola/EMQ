@@ -165,6 +165,21 @@ public partial class SongInfoCardWrapperComponent
         _musicCommentComponent.Show();
     }
 
+    protected override void OnInitialized()
+    {
+        ClientState.CollectionsChanged += OnCollectionsChanged;
+    }
+
+    public void Dispose()
+    {
+        ClientState.CollectionsChanged -= OnCollectionsChanged;
+    }
+
+    private void OnCollectionsChanged()
+    {
+        InvokeAsync(StateHasChanged);
+    }
+
     private async Task OnclickSongCollections(Song song)
     {
         CurrentSong = song;
@@ -177,22 +192,9 @@ public partial class SongInfoCardWrapperComponent
         var res = await _client.PostAsJsonAsync("Library/ModifyCollectionEntity", req);
         if (res.IsSuccessStatusCode)
         {
-            var collection =
-                ClientState.ResGetCollectionContainers.CollectionContainers.First(x => x.Collection.id == collectionId);
-            if (isAdded)
-            {
-                collection.CollectionEntities.Add(new CollectionEntity()
-                {
-                    collection_id = collectionId,
-                    entity_id = entityId,
-                    modified_at = DateTime.UtcNow,
-                    modified_by = ClientState.Session!.Player.Id
-                });
-            }
-            else
-            {
-                collection.CollectionEntities.RemoveAll(x => x.entity_id == entityId);
-            }
+            // Re-fetch so song-card +/- state matches the server instead of relying on
+            // optimistic local updates (covers other tabs/devices and shared editors too).
+            await ClientUtils.RefreshMyCollections(_client);
         }
     }
 }

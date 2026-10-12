@@ -16,7 +16,7 @@
 @* <a href="MethodCallStatistics">Method Call Statistics</a> *@
 @* <a href="RenderTimeStatistics">Render Time Statistics</a> *@
 
-<h1>@Constants.WebsiteName</h1>
+<h1>@Constants.WebsiteName (Fork)</h1>
 
 <div>
     @if (ClientState.Session != null && !LoginInProgress)
@@ -61,6 +61,8 @@
     {
         <p>Welcome to EMQ, please login in order to play.</p>
         <p>Please act with common sense in public AND private rooms. You can get your account restricted at any time for not acting with basic decorum.</p>
+
+        <p>I cannot guarantee that this website will be actively maintained or updated. If you want the latest features and song uploads, <a href="https://erogemusicquiz.com/">consider playing on the original site.</a></p>
         <div>
             <EditForm Model="@_loginModel" OnValidSubmit="@(() => Login(_loginModel))">
                 <DataAnnotationsValidator/>

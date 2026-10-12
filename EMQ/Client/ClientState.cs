@@ -54,6 +54,13 @@ public static class ClientState
 
     public static int SelectedCollectionId { get; set; }
 
+    public static event Action? CollectionsChanged;
+
+    public static void NotifyCollectionsChanged()
+    {
+        CollectionsChanged?.Invoke();
+    }
+
     public static List<UserLabelPreset> Presets { get; set; } = new();
 
     public static List<NekobakoPage.FileBatch> NekobakoBatches { get; } = new();

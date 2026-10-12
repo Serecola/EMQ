@@ -6,6 +6,7 @@
 @using EMQ.Shared.Library.Entities.Concrete
 @inject HttpClient _client
 @inject IJSRuntime _jsRuntime
+@implements IDisposable
 
 <ReviewComponent @ref="_reviewComponent" CurrentRQs="@(CurrentRQs)" ParentStateHasChangedCallback="@CallStateHasChanged"/>
 <ReviewEditComponent @ref="_reviewEditComponent" CurrentEQs="@(CurrentEQs)" ParentStateHasChangedCallback="@CallStateHasChanged"/>

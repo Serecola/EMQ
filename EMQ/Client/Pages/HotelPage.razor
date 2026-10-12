@@ -25,7 +25,7 @@
         <ValidationSummary/>
 
         <InputText id="RoomName" @bind-Value="_createNewRoomModel.RoomName" style="margin: 5px" maxlength="100"
-                   disabled="@(!AuthStuff.HasPermission(ClientState.Session, PermissionKind.SendChatMessage))"/>
+                   disabled="@(!AuthStuff.HasPermission(ClientState.Session, PermissionKind.CreateRoom))"/>
         <label for="RoomName">Room name</label>
         <br/>
 

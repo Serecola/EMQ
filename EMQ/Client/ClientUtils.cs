@@ -175,22 +175,7 @@ public class ClientUtils
                                     x => x.music_id, x => x);
                         }
 
-                        HttpResponseMessage resCollections =
-                            await Client.PostAsJsonAsync("Library/GetUserCollections", ClientState.Session.Player.Id);
-                        if (resCollections.IsSuccessStatusCode)
-                        {
-                            HttpResponseMessage resCollectionContainers =
-                                await Client.PostAsJsonAsync("Library/GetCollectionContainers",
-                                    await resCollections.Content.ReadFromJsonAsync<int[]>());
-                            if (resCollectionContainers.IsSuccessStatusCode)
-                            {
-                                ClientState.ResGetCollectionContainers =
-                                    (await resCollectionContainers.Content
-                                        .ReadFromJsonAsync<ResGetCollectionContainers>())!;
-                                ClientState.SelectedCollectionId = ClientState.ResGetCollectionContainers
-                                    .CollectionContainers.FirstOrDefault()?.Collection.id ?? 0;
-                            }
-                        }
+                        await RefreshMyCollections(Client);
                     }
                     else
                     {
@@ -231,6 +216,67 @@ public class ClientUtils
             }
 
             IsRestoringPreferences = false;
+        }
+    }
+
+    private static readonly SemaphoreSlim s_collectionsRefreshSemaphore = new(1, 1);
+
+    // Single place that refreshes the global "my collections" cache. Called after login,
+    // after session restore, after local +/- on song cards, and by the 5-minute poller.
+    public static async Task<bool> RefreshMyCollections(HttpClient client)
+    {
+        if (ClientState.Session is null)
+        {
+            return false;
+        }
+
+        if (!await s_collectionsRefreshSemaphore.WaitAsync(0))
+        {
+            return false;
+        }
+
+        try
+        {
+            HttpResponseMessage resCollections =
+                await client.PostAsJsonAsync("Library/GetUserCollections", ClientState.Session.Player.Id);
+            if (!resCollections.IsSuccessStatusCode)
+            {
+                return false;
+            }
+
+            int[]? ids = await resCollections.Content.ReadFromJsonAsync<int[]>();
+            if (ids is null)
+            {
+                return false;
+            }
+
+            HttpResponseMessage resCollectionContainers =
+                await client.PostAsJsonAsync("Library/GetCollectionContainers", ids);
+            if (!resCollectionContainers.IsSuccessStatusCode)
+            {
+                return false;
+            }
+
+            var content =
+                (await resCollectionContainers.Content.ReadFromJsonAsync<ResGetCollectionContainers>())!;
+            ClientState.ResGetCollectionContainers = content;
+            if (!content.CollectionContainers.Any(x => x.Collection.id == ClientState.SelectedCollectionId))
+            {
+                ClientState.SelectedCollectionId =
+                    content.CollectionContainers.FirstOrDefault()?.Collection.id ?? 0;
+            }
+
+            ClientState.NotifyCollectionsChanged();
+            return true;
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine(e);
+            return false;
+        }
+        finally
+        {
+            s_collectionsRefreshSemaphore.Release();
         }
     }
 

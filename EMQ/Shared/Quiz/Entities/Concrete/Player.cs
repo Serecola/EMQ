@@ -257,6 +257,9 @@ public class PlayerPreferences
     public bool AutocompleteIsEnabled { get; set; } = true;
 
     [Required]
+    public bool AutocompleteInputAutoSubmit { get; set; } = false;
+
+    [Required]
     public CdnEdgeKind CdnEdge { get; set; } = CdnEdgeKind.NaEast;
 
     [Required]

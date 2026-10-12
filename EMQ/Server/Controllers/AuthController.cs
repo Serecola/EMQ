@@ -424,7 +424,7 @@ public class AuthController : ControllerBase
             return StatusCode(520);
         }
 
-        if (Utils.GetPlayerKind(session.Player.Id) < PlayerKind.User)
+        if (Utils.GetPlayerKind(session.Player.Id) < PlayerKind.Guest)
         {
             if (ServerState.Config.IsHardened)
             {
@@ -811,7 +811,7 @@ public class AuthController : ControllerBase
             return Unauthorized();
         }
 
-        if (Utils.GetPlayerKind(session.Player.Id) < PlayerKind.User)
+        if (Utils.GetPlayerKind(session.Player.Id) < PlayerKind.Guest)
         {
             if (ServerState.Config.IsHardened)
             {
@@ -1025,7 +1025,7 @@ public class AuthController : ControllerBase
     }
 
     [EnableRateLimiting(RateLimitKind.ValidateSession)]
-    [CustomAuthorize(PermissionKind.User)]
+    [CustomAuthorize(PermissionKind.Guest)]
     [HttpPost]
     [Route("ProxyGrabPlayerAnimeFromMal")]
     public async Task<List<Label>> ProxyGrabPlayerAnimeFromMal(PlayerVndbInfo vndbInfo)

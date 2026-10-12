@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using EMQ.Shared.Core;
 using Microsoft.AspNetCore.Components;
@@ -9,7 +10,7 @@ using Microsoft.JSInterop;
 
 namespace EMQ.Client.Components;
 
-public partial class MyAutocompleteComponent<TValue> where TValue : notnull
+public partial class MyAutocompleteComponent<TValue> : IDisposable where TValue : notnull
 {
     public string SelectedText { get; private set; } = "";
 
@@ -70,6 +71,12 @@ public partial class MyAutocompleteComponent<TValue> where TValue : notnull
     [Parameter]
     public bool ShowIcons { get; set; } = true;
 
+    private CancellationTokenSource? _autoSubmitCts;
+
+    private const int AutoSubmitDebounceMs = 50;
+
+    private bool _isComposing;
+
     public void Close()
     {
         ShowDropdown = false;
@@ -98,13 +105,114 @@ public partial class MyAutocompleteComponent<TValue> where TValue : notnull
         }
     }
 
-    public async Task OnSetInputSearch(string value)
+    public Task OnSetInputSearch(string value)
     {
         SelectedText = value;
         CurrentSearchResults = OnSearch.Invoke(value);
         CurrentFocus = Math.Clamp(CurrentFocus, -1,
             CurrentSearchResults.Length == 0 ? -1 : CurrentSearchResults.Length - 1);
         ShowDropdown = true;
+
+        ScheduleInputAutoSubmit();
+        return Task.CompletedTask;
+    }
+
+    public void Dispose()
+    {
+        _autoSubmitCts?.Cancel();
+        _autoSubmitCts?.Dispose();
+    }
+
+    // Auto-submit on every keystroke (typed character, backspace, delete),
+    // mirroring the emq-nodropdown userscript behavior: submit whatever is
+    // currently typed as a guess without requiring Enter. Does not hide the
+    // dropdown and does not change arrow-key navigation.
+    private void ScheduleInputAutoSubmit()
+    {
+        _autoSubmitCts?.Cancel();
+        _autoSubmitCts?.Dispose();
+
+        if (!ClientState.Preferences.AutocompleteInputAutoSubmit)
+        {
+            _autoSubmitCts = null;
+            return;
+        }
+
+        if (_isComposing)
+        {
+            _autoSubmitCts = null;
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(SelectedText))
+        {
+            _autoSubmitCts = null;
+            return;
+        }
+
+        var cts = new CancellationTokenSource();
+        _autoSubmitCts = cts;
+
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                await Task.Delay(AutoSubmitDebounceMs, cts.Token);
+            }
+            catch (TaskCanceledException)
+            {
+                return;
+            }
+
+            await InvokeAsync(async () =>
+            {
+                if (cts.IsCancellationRequested)
+                {
+                    return;
+                }
+
+                if (!ClientState.Preferences.AutocompleteInputAutoSubmit)
+                {
+                    return;
+                }
+
+                if (_isComposing)
+                {
+                    return;
+                }
+
+                if (string.IsNullOrWhiteSpace(SelectedText))
+                {
+                    return;
+                }
+
+                await AutoSubmitInputValue();
+            });
+        });
+    }
+
+    private async Task AutoSubmitInputValue()
+    {
+        // Submit the raw typed text (like pressing Enter with no suggestion
+        // highlighted) instead of auto-picking the focused dropdown item.
+        int savedFocus = CurrentFocus;
+        CurrentFocus = -1;
+        try
+        {
+            await SelectValue();
+        }
+        finally
+        {
+            // Keep the suggestion list usable while auto-submitting each keystroke.
+            // RequireConfirmation manages its own dropdown visibility, so leave it alone there.
+            if (ClientState.Preferences.AutocompleteIsEnabled && !RequireConfirmation)
+            {
+                ShowDropdown = true;
+                CurrentFocus = Math.Clamp(savedFocus, -1,
+                    CurrentSearchResults.Length == 0 ? -1 : CurrentSearchResults.Length - 1);
+                StateHasChanged();
+            }
+        }
     }
 
     private async Task OnKeyDown(KeyboardEventArgs args)
@@ -204,6 +312,20 @@ public partial class MyAutocompleteComponent<TValue> where TValue : notnull
     private void OnFocus(FocusEventArgs obj)
     {
         ShowDropdown = true;
+    }
+
+    private void OnCompositionStart(EventArgs _)
+    {
+        _isComposing = true;
+        _autoSubmitCts?.Cancel();
+        _autoSubmitCts?.Dispose();
+        _autoSubmitCts = null;
+    }
+
+    private void OnCompositionEnd(EventArgs _)
+    {
+        _isComposing = false;
+        ScheduleInputAutoSubmit();
     }
 
     private void OnBlur(FocusEventArgs obj)
