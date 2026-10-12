@@ -283,6 +283,17 @@ public partial class MyAutocompleteComponent<TValue> : IDisposable where TValue 
             case "Enter":
             case "NumpadEnter":
                 {
+                    _autoSubmitCts?.Cancel();
+                    _autoSubmitCts?.Dispose();
+                    _autoSubmitCts = null;
+
+                    if (ClientState.Preferences.AutocompleteInputAutoSubmit &&
+                        CurrentFocus < 0 &&
+                        CurrentSearchResults.Length > 0)
+                    {
+                        CurrentFocus = 0;
+                    }
+
                     await SelectValue();
                     break;
                 }
