@@ -60,6 +60,7 @@
     else if (LoginInProgress || ClientState.Session == null)
     {
         <p>Welcome to EMQ, please login in order to play.</p>
+        <p>Please act with common sense in public AND private rooms. You can get your account restricted at any time for not acting with basic decorum.</p>
         <div>
             <EditForm Model="@_loginModel" OnValidSubmit="@(() => Login(_loginModel))">
                 <DataAnnotationsValidator/>
