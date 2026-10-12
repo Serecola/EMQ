@@ -75,6 +75,10 @@ public partial class MyAutocompleteComponent<TValue> : IDisposable where TValue 
 
     private const int AutoSubmitDebounceMs = 50;
 
+    private CancellationTokenSource? _searchCts;
+
+    private const int SearchDebounceMs = 30;
+
     private bool _isComposing;
 
     public void Close()
@@ -107,20 +111,59 @@ public partial class MyAutocompleteComponent<TValue> : IDisposable where TValue 
 
     public Task OnSetInputSearch(string value)
     {
+        // Update the bound text immediately so the input box stays responsive while typing,
+        // but debounce the expensive O(dataset) search + re-render the way the emq-autocomplete
+        // userscript debounces performSearch with setTimeout(…, 30). Without this, multi-term
+        // matching scans every entry on the single UI thread on every keystroke and freezes the page.
         SelectedText = value;
-        CurrentSearchResults = OnSearch.Invoke(value);
-        CurrentFocus = Math.Clamp(CurrentFocus, -1,
-            CurrentSearchResults.Length == 0 ? -1 : CurrentSearchResults.Length - 1);
-        ShowDropdown = true;
+
+        ScheduleSearch();
 
         ScheduleInputAutoSubmit();
         return Task.CompletedTask;
+    }
+
+    private void ScheduleSearch()
+    {
+        _searchCts?.Cancel();
+        _searchCts?.Dispose();
+
+        var cts = new CancellationTokenSource();
+        _searchCts = cts;
+
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                await Task.Delay(SearchDebounceMs, cts.Token);
+            }
+            catch (TaskCanceledException)
+            {
+                return;
+            }
+
+            await InvokeAsync(() =>
+            {
+                if (cts.IsCancellationRequested)
+                {
+                    return;
+                }
+
+                CurrentSearchResults = OnSearch.Invoke(SelectedText);
+                CurrentFocus = Math.Clamp(CurrentFocus, -1,
+                    CurrentSearchResults.Length == 0 ? -1 : CurrentSearchResults.Length - 1);
+                ShowDropdown = true;
+                StateHasChanged();
+            });
+        });
     }
 
     public void Dispose()
     {
         _autoSubmitCts?.Cancel();
         _autoSubmitCts?.Dispose();
+        _searchCts?.Cancel();
+        _searchCts?.Dispose();
     }
 
     // Auto-submit on every keystroke (typed character, backspace, delete),

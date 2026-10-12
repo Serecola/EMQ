@@ -27,6 +27,27 @@ public partial class AutocompleteMtComponent : IAutocompleteComponent
         set => ClientState.AutocompleteData[AutocompleteKey] = value;
     }
 
+    private AutocompleteMt[]? _mtCombinedFor;
+    private string[]? _mtCombined;
+
+    /// <summary>
+    /// Precomputes (once per dataset) the per-entry combined normalized strings used by multi-term
+    /// matching, mirroring the userscript's up-front <c>config.entries</c> build. Rebuilt only when the
+    /// underlying dataset reference changes, so keystroke-time search is a zero-allocation scan.
+    /// </summary>
+    private string[] GetMtCombined()
+    {
+        AutocompleteMt[] data = AutocompleteData;
+        if (!ReferenceEquals(_mtCombinedFor, data) || _mtCombined is null)
+        {
+            _mtCombined = AutocompleteHelpers.BuildMultiTermCombinedFromNormalizedArray(data,
+                d => new[] { d.MTLatinTitleNormalized, d.MTNonLatinTitleNormalized });
+            _mtCombinedFor = data;
+        }
+
+        return _mtCombined;
+    }
+
     [Parameter]
     public string Placeholder { get; set; } = "";
 
@@ -138,15 +159,44 @@ public partial class AutocompleteMtComponent : IAutocompleteComponent
             return (TValue[])(object)new AutocompleteMt[] { new(Convert.ToInt32(replaced), value) };
         }
 
+        string rawValue = value;
         value = value.NormalizeForAutocomplete();
         if (string.IsNullOrWhiteSpace(value))
         {
             return Array.Empty<TValue>();
         }
 
+        const int maxResults = 25; // todo
+        if (ClientState.Preferences.AutocompleteMultiTermMatching)
+        {
+            string[] queryWords = AutocompleteHelpers.GetAutocompleteQueryWords(rawValue);
+            if (queryWords.Length >= 2)
+            {
+                ReadOnlySpan<string> wordsSpan = queryWords;
+                AutocompleteMt[] data = AutocompleteData;
+                string[] combined = GetMtCombined();
+                var scored = new List<(AutocompleteMt Item, int Score, int Index)>();
+                for (int i = 0; i < combined.Length; i++)
+                {
+                    int? score = AutocompleteHelpers.GetMultiTermMatchScore(combined[i], value, wordsSpan);
+                    if (score.HasValue)
+                    {
+                        scored.Add((data[i], score.Value, i));
+                    }
+                }
+
+                return (TValue[])(object)scored
+                    .OrderByDescending(x => x.Score)
+                    .ThenBy(x => x.Index)
+                    .DistinctBy(x => x.Item.MTLatinTitleNormalized)
+                    .Take(maxResults)
+                    .Select(x => x.Item)
+                    .ToArray();
+            }
+        }
+
         var valueSpan = value.AsSpan();
         bool hasNonAscii = !Ascii.IsValid(valueSpan);
-        const int maxResults = 25; // todo
         var dictLT = new Dictionary<AutocompleteMt, StringMatch>();
         var dictNLT = new Dictionary<AutocompleteMt, StringMatch>();
         foreach (AutocompleteMt d in AutocompleteData)
@@ -169,7 +219,7 @@ public partial class AutocompleteMtComponent : IAutocompleteComponent
 
         return (TValue[])(object)dictLT.Concat(dictNLT)
             .OrderByDescending(x => x.Value)
-            .DistinctBy(x => x.Key.MTLatinTitle)
+            .DistinctBy(x => x.Key.MTLatinTitleNormalized)
             .Take(maxResults)
             .Select(x => x.Key)
             .ToArray();

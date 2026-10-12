@@ -25,6 +25,27 @@ public partial class GuessInputComponent : IAutocompleteComponent
         set => ClientState.AutocompleteData[AutocompleteKey] = value;
     }
 
+    private AutocompleteMst[]? _mstCombinedFor;
+    private string[]? _mstCombined;
+
+    /// <summary>
+    /// Precomputes (once per dataset) the per-entry combined normalized strings used by multi-term
+    /// matching, mirroring the userscript's up-front <c>config.entries</c> build. Rebuilt only when the
+    /// underlying dataset reference changes, so keystroke-time search is a zero-allocation scan.
+    /// </summary>
+    private string[] GetMstCombined()
+    {
+        AutocompleteMst[] data = AutocompleteData;
+        if (!ReferenceEquals(_mstCombinedFor, data) || _mstCombined is null)
+        {
+            _mstCombined = AutocompleteHelpers.BuildMultiTermCombinedFromNormalizedArray(data,
+                d => new[] { d.MSTLatinTitleNormalized, d.MSTNonLatinTitleNormalized });
+            _mstCombinedFor = data;
+        }
+
+        return _mstCombined;
+    }
+
     [Parameter]
     public string Placeholder { get; set; } = "";
 
@@ -147,15 +168,44 @@ public partial class GuessInputComponent : IAutocompleteComponent
             };
         }
 
+        string rawValue = value;
         value = value.NormalizeForAutocomplete();
         if (string.IsNullOrWhiteSpace(value))
         {
             return Array.Empty<TValue>();
         }
 
+        const int maxResults = 25; // todo
+        if (ClientState.Preferences.AutocompleteMultiTermMatching)
+        {
+            string[] queryWords = AutocompleteHelpers.GetAutocompleteQueryWords(rawValue);
+            if (queryWords.Length >= 2)
+            {
+                ReadOnlySpan<string> wordsSpan = queryWords;
+                AutocompleteMst[] data = AutocompleteData;
+                string[] combined = GetMstCombined();
+                var scored = new List<(AutocompleteMst Item, int Score, int Index)>();
+                for (int i = 0; i < combined.Length; i++)
+                {
+                    int? score = AutocompleteHelpers.GetMultiTermMatchScore(combined[i], value, wordsSpan);
+                    if (score.HasValue)
+                    {
+                        scored.Add((data[i], score.Value, i));
+                    }
+                }
+
+                return (TValue[])(object)scored
+                    .OrderByDescending(x => x.Score)
+                    .ThenBy(x => x.Index)
+                    .DistinctBy(x => x.Item.MSId)
+                    .Take(maxResults)
+                    .Select(x => x.Item)
+                    .ToArray();
+            }
+        }
+
         var valueSpan = value.AsSpan();
         bool hasNonAscii = !Ascii.IsValid(valueSpan);
-        const int maxResults = 25; // todo
         var dictLT = new Dictionary<AutocompleteMst, StringMatch>();
         var dictNLT = new Dictionary<AutocompleteMst, StringMatch>();
         foreach (AutocompleteMst d in AutocompleteData)
@@ -180,7 +230,7 @@ public partial class GuessInputComponent : IAutocompleteComponent
 
         return (TValue[])(object)dictLT.Concat(dictNLT)
             .OrderByDescending(x => x.Value)
-            .DistinctBy(x => new { x.Key.MSTLatinTitle, x.Key.SongSourceType })
+            .DistinctBy(x => x.Key.MSId)
             .Take(maxResults)
             .Select(x => x.Key)
             .ToArray();

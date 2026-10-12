@@ -27,6 +27,30 @@ public partial class AutocompleteDeveloperComponent : IAutocompleteComponent
         set => ClientState.AutocompleteData[AutocompleteKey] = value;
     }
 
+    private AutocompleteMst[]? _devCombinedFor;
+    private string[]? _devCombined;
+
+    /// <summary>
+    /// Precomputes (once per dataset) the per-entry combined normalized strings used by multi-term
+    /// matching, mirroring the userscript's up-front <c>config.entries</c> build. Rebuilt only when the
+    /// underlying dataset reference changes, so keystroke-time search is a zero-allocation scan.
+    /// </summary>
+    private string[] GetDevCombined()
+    {
+        AutocompleteMst[] data = AutocompleteData;
+        if (!ReferenceEquals(_devCombinedFor, data) || _devCombined is null)
+        {
+            _devCombined = AutocompleteHelpers.BuildMultiTermCombinedArray(data,
+                d => new[]
+                {
+                    d.MSTLatinTitle, d.MSTNonLatinTitle, d.MSTNonLatinTitleNormalized, d.MSTLatinTitleNormalized,
+                });
+            _devCombinedFor = data;
+        }
+
+        return _devCombined;
+    }
+
     [Parameter]
     public string Placeholder { get; set; } = "";
 
@@ -91,6 +115,7 @@ public partial class AutocompleteDeveloperComponent : IAutocompleteComponent
 
     private TValue[] OnSearch<TValue>(string value)
     {
+        string rawValue = value;
         value = value.NormalizeForAutocomplete();
         if (string.IsNullOrWhiteSpace(value))
         {
@@ -100,6 +125,34 @@ public partial class AutocompleteDeveloperComponent : IAutocompleteComponent
         var valueSpan = value.AsSpan();
         bool hasNonAscii = !Ascii.IsValid(valueSpan);
         const int maxResults = 25; // todo
+        if (ClientState.Preferences.AutocompleteMultiTermMatching)
+        {
+            string[] queryWords = AutocompleteHelpers.GetAutocompleteQueryWords(rawValue);
+            if (queryWords.Length >= 2)
+            {
+                ReadOnlySpan<string> wordsSpan = queryWords;
+                AutocompleteMst[] data = AutocompleteData;
+                string[] combined = GetDevCombined();
+                var scored = new List<(AutocompleteMst Item, int Score, int Index)>();
+                for (int i = 0; i < combined.Length; i++)
+                {
+                    int? score = AutocompleteHelpers.GetMultiTermMatchScore(combined[i], value, wordsSpan);
+                    if (score.HasValue)
+                    {
+                        scored.Add((data[i], score.Value, i));
+                    }
+                }
+
+                return (TValue[])(object)scored
+                    .OrderByDescending(x => x.Score)
+                    .ThenBy(x => x.Index)
+                    .DistinctBy(x => x.Item.MSTLatinTitle)
+                    .Take(maxResults)
+                    .Select(x => x.Item.MSTLatinTitle)
+                    .ToArray();
+            }
+        }
+
         var dictLT = new Dictionary<AutocompleteMst, StringMatch>();
         var dictNLT = new Dictionary<AutocompleteMst, StringMatch>();
         foreach (AutocompleteMst d in AutocompleteData)

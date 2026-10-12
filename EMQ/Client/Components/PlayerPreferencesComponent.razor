@@ -145,6 +145,10 @@
             <label for="AutocompleteInputAutoSubmit">Input auto submit</label>
             <br/>
 
+            <InputCheckbox id="AutocompleteMultiTermMatching" class="form-check-input" @bind-Value="ClientState.Preferences.AutocompleteMultiTermMatching" style="margin: 5px"></InputCheckbox>
+            <label for="AutocompleteMultiTermMatching">Multi-term matching (slightly laggy)</label>
+            <br/>
+
             <InputCheckbox id="AutocompleteHighlightMatch" class="form-check-input" @bind-Value="ClientState.Preferences.AutocompleteHighlightMatch" style="margin: 5px"></InputCheckbox>
             <label for="AutocompleteHighlightMatch">Highlight matching text</label>
             <br/>

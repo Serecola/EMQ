@@ -4,6 +4,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Text;
 
 namespace EMQ.Shared.Core;
@@ -282,4 +283,143 @@ public static class AutocompleteHelpers
 
         return (tokens[tokenStartIndex].OrigStart, tokens[tokenEndIndex].OrigEnd);
     }
+
+    /// <summary>
+    /// Splits a raw autocomplete query into normalized search words, mirroring the emq-autocomplete
+    /// userscript: split on whitespace, then split each token into letter-runs and digit-runs.
+    /// </summary>
+    public static string[] GetAutocompleteQueryWords(string query)
+    {
+        if (string.IsNullOrWhiteSpace(query))
+        {
+            return Array.Empty<string>();
+        }
+
+        var words = new List<string>();
+        foreach (string part in query.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries))
+        {
+            string cleaned = part.NormalizeForAutocomplete();
+            int runStart = 0;
+            while (runStart < cleaned.Length)
+            {
+                bool runIsDigit = char.IsDigit(cleaned[runStart]);
+                int runEnd = runStart + 1;
+                while (runEnd < cleaned.Length && char.IsDigit(cleaned[runEnd]) == runIsDigit)
+                {
+                    runEnd++;
+                }
+
+                words.Add(cleaned.Substring(runStart, runEnd - runStart));
+                runStart = runEnd;
+            }
+        }
+
+        // Pre-sort longest-first once here so the hot scoring loop doesn't re-sort per entry.
+        words.Sort(static (a, b) => b.Length.CompareTo(a.Length));
+        return words.ToArray();
+    }
+
+    /// <summary>
+    /// Multi-term match scoring mirroring the emq-autocomplete userscript: every query word must appear
+    /// in the combined normalized string (in any order); longer words are matched first.
+    /// Returns null when any word is missing. Higher scores rank first.
+    /// <para>
+    /// Allocation-free hot loop: uses ordinal <see cref="MemoryExtensions.Contains{T}(ReadOnlySpan{T},ReadOnlySpan{T},StringComparison)"/>
+    /// / <see cref="MemoryExtensions.IndexOf{T}(ReadOnlySpan{T},ReadOnlySpan{T},StringComparison)"/> on spans, and early-exits
+    /// as soon as a word is missing (the common case), so most entries cost a single failed substring scan.
+    /// </para>
+    /// </summary>
+    public static int? GetMultiTermMatchScore(ReadOnlySpan<char> normalizedCombined, ReadOnlySpan<char> normalizedQuery,
+        ReadOnlySpan<string> queryWords)
+    {
+        if (normalizedCombined.IsEmpty || normalizedQuery.IsEmpty || queryWords.IsEmpty)
+        {
+            return null;
+        }
+
+        int score = 0;
+        foreach (string keyword in queryWords)
+        {
+            // Most entries fail here on the first missing word, so this scan dominates the cost.
+            int position = normalizedCombined.IndexOf(keyword.AsSpan(), StringComparison.Ordinal);
+            if (position < 0)
+            {
+                return null;
+            }
+
+            score += position == 0 ? 500 : Math.Max(1, 100 - position);
+            score += keyword.Length * 10;
+        }
+
+        if (normalizedCombined.SequenceEqual(normalizedQuery))
+        {
+            score += 10000;
+        }
+
+        if (normalizedCombined.Contains(normalizedQuery, StringComparison.Ordinal))
+        {
+            score += 2000;
+        }
+
+        score -= normalizedCombined.Length;
+        return score;
+    }
+
+    /// <summary>
+    /// Combines the given raw display fields and normalizes the result once, mirroring the userscript's
+    /// per-source <c>mapEntry</c> (join raw titles with spaces, then <c>normalize()</c>). Use this when
+    /// eagerly precomputing combined strings at data-load time so the UI thread never normalizes the whole
+    /// dataset on the first multi-term keystroke.
+    /// </summary>
+    public static string BuildMultiTermCombined(string?[] fields, string? rawFallback = null)
+    {
+        string joined = string.Join(" ", fields.Where(x => !string.IsNullOrWhiteSpace(x)));
+        if (string.IsNullOrWhiteSpace(joined))
+        {
+            return string.IsNullOrEmpty(rawFallback) ? string.Empty : rawFallback.NormalizeForAutocomplete();
+        }
+
+        return joined.NormalizeForAutocomplete();
+    }
+
+    /// <summary>
+    /// Precomputes the combined normalized string for every entry once (mirroring the userscript building
+    /// <c>config.entries</c> up front). The returned array is index-aligned with <paramref name="data"/>, so
+    /// multi-term search can scan it with zero per-entry allocation instead of re-normalizing on every
+    /// keystroke — which is what previously froze the UI thread on large datasets.
+    /// </summary>
+    public static string[] BuildMultiTermCombinedArray<T>(IReadOnlyList<T> data, Func<T, string?[]> fieldSelector)
+    {
+        var result = new string[data.Count];
+        for (int i = 0; i < data.Count; i++)
+        {
+            result[i] = BuildMultiTermCombined(fieldSelector(data[i]));
+        }
+
+        return result;
+    }
+
+    /// <summary>
+    /// Precomputes the combined search string for every entry by concatenating fields that are
+    /// <b>already normalized</b> (the normalized columns the server ships in each autocomplete JSON),
+    /// skipping any per-entry <see cref="NormalizeForAutocomplete"/> pass. Because normalization strips
+    /// whitespace, concatenating the pre-normalized columns yields the same string as normalizing the
+    /// joined raw titles — but as a trivial <see cref="string.Concat(string?)"/> instead of a FormD +
+    /// Unicode-category pass over the whole dataset, which is what froze the UI thread on large datasets
+    /// in interpreted Blazor WASM (no AOT). The returned array is index-aligned with <paramref name="data"/>.
+    /// </summary>
+    public static string[] BuildMultiTermCombinedFromNormalizedArray<T>(IReadOnlyList<T> data,
+        Func<T, string?[]> normalizedFieldSelector)
+    {
+        var result = new string[data.Count];
+        for (int i = 0; i < data.Count; i++)
+        {
+            // No separator: normalized strings contain no whitespace, so concatenating them equals
+            // normalize(join(raw...)) while avoiding any runtime normalization.
+            result[i] = string.Concat(normalizedFieldSelector(data[i]));
+        }
+
+        return result;
+    }
+
 }

@@ -260,6 +260,9 @@ public class PlayerPreferences
     public bool AutocompleteInputAutoSubmit { get; set; } = false;
 
     [Required]
+    public bool AutocompleteMultiTermMatching { get; set; } = false;
+
+    [Required]
     public CdnEdgeKind CdnEdge { get; set; } = CdnEdgeKind.NaEast;
 
     [Required]

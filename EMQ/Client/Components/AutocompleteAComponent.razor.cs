@@ -27,6 +27,31 @@ public partial class AutocompleteAComponent : IAutocompleteComponent
         set => ClientState.AutocompleteData[AutocompleteKey] = value;
     }
 
+    private AutocompleteA[]? _aCombinedFor;
+    private string[]? _aCombined;
+
+    /// <summary>
+    /// Precomputes (once per dataset) the per-entry combined normalized strings used by multi-term
+    /// matching, mirroring the userscript's up-front <c>config.entries</c> build. Rebuilt only when the
+    /// underlying dataset reference changes, so keystroke-time search is a zero-allocation scan.
+    /// </summary>
+    private string[] GetACombined()
+    {
+        AutocompleteA[] data = AutocompleteData;
+        if (!ReferenceEquals(_aCombinedFor, data) || _aCombined is null)
+        {
+            _aCombined = AutocompleteHelpers.BuildMultiTermCombinedFromNormalizedArray(data,
+                d => new[]
+                {
+                    d.AALatinAliasNormalized, d.AANonLatinAliasNormalized, d.AALatinAliasNormalizedReversed,
+                    d.AANonLatinAliasNormalizedReversed,
+                });
+            _aCombinedFor = data;
+        }
+
+        return _aCombined;
+    }
+
     [Parameter]
     public string Placeholder { get; set; } = "";
 
@@ -143,6 +168,7 @@ public partial class AutocompleteAComponent : IAutocompleteComponent
             return (TValue[])(object)new AutocompleteA[] { new(Convert.ToInt32(replaced), value) };
         }
 
+        string rawValue = value;
         value = value.NormalizeForAutocomplete();
         if (string.IsNullOrWhiteSpace(value))
         {
@@ -150,6 +176,42 @@ public partial class AutocompleteAComponent : IAutocompleteComponent
         }
 
         int maxResults = 30;
+        if (ClientState.Preferences.AutocompleteMultiTermMatching)
+        {
+            string[] queryWords = AutocompleteHelpers.GetAutocompleteQueryWords(rawValue);
+            if (queryWords.Length >= 2)
+            {
+                maxResults = 25;
+                ReadOnlySpan<string> wordsSpan = queryWords;
+                AutocompleteA[] data = AutocompleteData;
+                string[] combined = GetACombined();
+                var scored = new List<(AutocompleteA Item, int Score, int Index, bool IsMain)>();
+                for (int i = 0; i < combined.Length; i++)
+                {
+                    AutocompleteA d = data[i];
+                    // Mirror the userscript's a.json mapping: combine alias, alt alias, and swapped forms.
+                    int? score = AutocompleteHelpers.GetMultiTermMatchScore(combined[i], value, wordsSpan);
+                    if (score.HasValue)
+                    {
+                        scored.Add((d, score.Value, i, d.IsMain));
+                    }
+                }
+
+                var multiRes = scored
+                    .OrderByDescending(x => x.Score)
+                    .ThenByDescending(x => x.IsMain)
+                    .ThenBy(x => x.Index)
+                    .DistinctBy(x => x.Item.AId)
+                    .Take(maxResults)
+                    .Select(x => new KeyValuePair<AutocompleteA, StringMatch>(x.Item, StringMatch.Contains))
+                    .ToList();
+
+                return (TValue[])(object)multiRes
+                    .Select(x => x.Key)
+                    .ToArray();
+            }
+        }
+
         if (value == ShowAllResultsStr.NormalizeForAutocomplete())
         {
             maxResults = int.MaxValue;
