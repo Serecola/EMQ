@@ -937,7 +937,7 @@ public class EntryPoints
         var builder = ConnectionHelper.GetConnectionStringBuilderWithEnvVar(envVar);
         Environment.SetEnvironmentVariable("PGPASSWORD", builder.Password);
 
-        string dumpFileName = "pgdump_2025-04-02_EMQ@erogemusicquiz.com.tar";
+        string dumpFileName = "pgdump_2025-04-02_EMQ@emq.serecola.com.tar";
         // dumpFileName = "pgdump_2024-02-19_vndbforemq@localhost.tar";
         var proc = new Process()
         {
@@ -963,7 +963,7 @@ public class EntryPoints
     [Test, Explicit]
     public async Task RecreateSchema()
     {
-        if (ConnectionHelper.GetConnectionString().Contains("erogemusicquiz.com"))
+        if (ConnectionHelper.GetConnectionString().Contains("emq.serecola.com"))
         {
             throw new Exception("wrong db");
         }
@@ -1277,7 +1277,7 @@ order by user_id";
         string[] validFilenames =
             (await connection.QueryAsync<string>("select url from music_external_link where type = 2"))
             .Select(x => x.Replace("https://emqselfhost/selfhoststorage/", "")
-                .Replace("https://erogemusicquiz.com/selfhoststorage/", "")
+                .Replace("https://emq.serecola.com/selfhoststorage/", "")
                 .Replace("catbox/", "")
                 .Replace("userup/", "")
                 .Replace("weba/", "")).ToArray();
@@ -1343,7 +1343,7 @@ order by user_id";
     [Test, Explicit]
     public static async Task PopulateMusicVote()
     {
-        if (ConnectionHelper.GetConnectionString().Contains("erogemusicquiz.com"))
+        if (ConnectionHelper.GetConnectionString().Contains("emq.serecola.com"))
         {
             throw new Exception("wrong db");
         }
@@ -2119,7 +2119,7 @@ HAVING array_length(array_agg(DISTINCT aa.latin_alias), 1) = 1
             new { withDevs })).OrderBy(x => x).ToArray();
         foreach (int i in maybe)
         {
-            Console.WriteLine($"https://erogemusicquiz.com/ems{i}");
+            Console.WriteLine($"https://emq.serecola.com/ems{i}");
         }
     }
 
@@ -2433,7 +2433,7 @@ HAVING array_length(array_agg(DISTINCT aa.latin_alias), 1) = 1
     [Test, Explicit]
     public static async Task AnalyzeVocalsRangesRemotely()
     {
-        string baseUrl = "https://erogemusicquiz.com";
+        string baseUrl = "https://emq.serecola.com";
         var client = new HttpClient();
         client.DefaultRequestHeaders.Add("Cookie",
             "");
@@ -2444,7 +2444,7 @@ HAVING array_length(array_agg(DISTINCT aa.latin_alias), 1) = 1
             {
                 await Task.Delay(TimeSpan.FromSeconds(1));
                 return await client.DownloadFile(path,
-                    new Uri(url.Replace("https://emqselfhost", "https://erogemusicquiz.com")));
+                    new Uri(url.Replace("https://emqselfhost", "https://emq.serecola.com")));
             }
             catch (Exception e)
             {

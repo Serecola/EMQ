@@ -34,7 +34,7 @@ public static class VndbImporter
 
     public static async Task ImportVndbData(DateTime dateTime, bool isIncremental)
     {
-        if (!isIncremental && ConnectionHelper.GetConnectionString().Contains("erogemusicquiz.com"))
+        if (!isIncremental && ConnectionHelper.GetConnectionString().Contains("emq.serecola.com"))
         {
             throw new Exception("wrong db");
         }

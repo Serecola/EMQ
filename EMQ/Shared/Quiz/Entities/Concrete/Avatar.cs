@@ -48,10 +48,6 @@ public class Avatar
 
         if (!string.IsNullOrWhiteSpace(avatar.Skin))
         {
-            // VNDB character images are served from the local export folder in dev: the browser is
-            // loaded from the same origin as the server, which maps /selfhoststorage/vndb-img to
-            // EMQ_LOCAL_VNDBIMG_DIR (e.g. D:\Coding\EMQFiles\vndb-img). A root-relative URL hits that
-            // in dev and resolves to the same https://erogemusicquiz.com/selfhoststorage/... in production.
             if (avatar.Character is AvatarCharacter.VNDBCharacterImage)
             {
                 (string modStr, int number) = Utils.ParseVndbScreenshotStr(avatar.Skin);

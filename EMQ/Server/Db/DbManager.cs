@@ -284,7 +284,7 @@ ORDER BY music_id;";
         await using var connection = new NpgsqlConnection(ConnectionHelper.GetConnectionString());
         await connection.ExecuteAsync(
             @$"DELETE FROM music_source_external_link WHERE TYPE = {(int)SongSourceLinkType.SelfSource};
-        INSERT INTO music_source_external_link SELECT id, 'https://erogemusicquiz.com/ems'||id, {(int)SongSourceLinkType.SelfSource}, '' FROM music_source ON CONFLICT DO NOTHING;");
+        INSERT INTO music_source_external_link SELECT id, 'https://emq.serecola.com/ems'||id, {(int)SongSourceLinkType.SelfSource}, '' FROM music_source ON CONFLICT DO NOTHING;");
 
         await using var connectionAuth = new NpgsqlConnection(ConnectionHelper.GetConnectionString_Auth());
         IgnoredMusicVotes = (await connectionAuth.QueryAsync<int>("select id from users where ign_mv")).ToArray();

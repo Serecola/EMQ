@@ -17,7 +17,7 @@ public static class Constants
     // WebsiteDomainNoProtocol falls back to being derived from WebsiteDomain so that setting a single
     // envVar is enough (auth cookies are silently dropped by browsers when set for a foreign domain).
     public static readonly string WebsiteDomain =
-        Environment.GetEnvironmentVariable("EMQ_WEBSITE_DOMAIN") ?? "https://erogemusicquiz.com";
+        Environment.GetEnvironmentVariable("EMQ_WEBSITE_DOMAIN") ?? "https://emq.serecola.com";
 
     public static readonly string WebsiteDomainNoProtocol =
         Environment.GetEnvironmentVariable("EMQ_WEBSITE_DOMAIN_NO_PROTOCOL")

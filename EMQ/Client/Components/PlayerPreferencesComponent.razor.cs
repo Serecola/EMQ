@@ -611,7 +611,7 @@ public partial class PlayerPreferencesComponent
             return;
         }
 
-        var msIds = label.VNs.Select(x => Convert.ToInt32(x.Key.Replace("https://erogemusicquiz.com/ems", "")));
+        var msIds = label.VNs.Select(x => Convert.ToInt32(x.Key.Replace("https://emq.serecola.com/ems", "")));
         int[] missing = msIds.Except(ClientState.SourcesCache.Keys).ToArray();
         if (missing.Any())
         {
@@ -649,7 +649,7 @@ public partial class PlayerPreferencesComponent
                     string norm = selectedMusicSourceTitle.NormalizeForAutocomplete();
                     var label = vndbInfo.Labels!.Single();
                     var current = label.VNs.Keys.Select(x =>
-                        Convert.ToInt32(x.Replace("https://erogemusicquiz.com/ems", "")));
+                        Convert.ToInt32(x.Replace("https://emq.serecola.com/ems", "")));
                     var msIds = new HashSet<int>(current);
                     foreach (Song song in songs)
                     {
@@ -666,7 +666,7 @@ public partial class PlayerPreferencesComponent
 
                     foreach (int msId in msIds)
                     {
-                        label.VNs[$"https://erogemusicquiz.com/ems{msId}"] = -1;
+                        label.VNs[$"https://emq.serecola.com/ems{msId}"] = -1;
 
                         HttpResponseMessage resUpdateLabel = await _client.PostAsJsonAsync("Auth/UpdateLabel",
                             new ReqUpdateLabel(ClientState.Session!.Token, label, vndbInfo.DatabaseKind));

@@ -146,7 +146,7 @@ public class QuizController : ControllerBase
         switch (req.CdnEdge)
         {
             case CdnEdgeKind.Asia:
-                url = url.Replace("https://erogemusicquiz.com/", "https://asiadist.erogemusicquiz.com/");
+                url = url.Replace("https://emq.serecola.com/", "https://emq.serecola.com/");
                 break;
         }
 

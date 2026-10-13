@@ -279,7 +279,7 @@
                                 @foreach ((string key, int _) in label.VNs)
                                 {
                                     <ul style="list-style: none;">
-                                        @if (!ClientState.SourcesCache.TryGetValue(Convert.ToInt32(key.Replace("https://erogemusicquiz.com/ems", "")), out var ms))
+                                        @if (!ClientState.SourcesCache.TryGetValue(Convert.ToInt32(key.Replace("https://emq.serecola.com/ems", "")), out var ms))
                                         {
                                             ms = new SongSource() { Titles = new List<Title>() { new() { LatinTitle = key } } };
                                         }

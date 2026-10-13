@@ -267,7 +267,7 @@ URL: <a class="link-primary" href="@reviewingItem?.url" target="_blank"> @review
             @if (reviewingItem.analysis_raw is {EncodedByEmq: true, OriginalExtension: {} } && reviewingItem.submitted_on.AddDays(30) > DateTime.UtcNow)
             {
                 // todo?
-                string href = $"https://erogemusicquiz.com/selfhoststorage/userup/raw/{reviewingItem.id}.{reviewingItem.analysis_raw.OriginalExtension}";
+                string href = $"https://emq.serecola.com/selfhoststorage/userup/raw/{reviewingItem.id}.{reviewingItem.analysis_raw.OriginalExtension}";
                 <a href="@href" target="_blank">
                     Raw file
                 </a>

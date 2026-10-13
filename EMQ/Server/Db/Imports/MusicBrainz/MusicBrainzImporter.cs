@@ -47,7 +47,7 @@ public static class MusicBrainzImporter
 
     public static async Task ImportMusicBrainzData(bool isIncremental, bool calledFromApi)
     {
-        if (!isIncremental && ConnectionHelper.GetConnectionString().Contains("erogemusicquiz.com"))
+        if (!isIncremental && ConnectionHelper.GetConnectionString().Contains("emq.serecola.com"))
         {
             throw new Exception("wrong db");
         }
