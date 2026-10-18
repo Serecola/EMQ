@@ -101,7 +101,19 @@ public partial class QuizPage
 
     public QuizPageState PageState { get; set; } = new() { };
 
-    private Room? Room { get; set; }
+    private Room? _room;
+
+    private Room? Room
+    {
+        get => _room;
+        set
+        {
+            _room = value;
+            // keep the ambient "force autocomplete dropdown off" flag in sync with the room's answering method
+            ClientState.IsTypingNoDropdown =
+                value?.QuizSettings.AnsweringKind == AnsweringKind.TypingNoDropdown;
+        }
+    }
 
     private readonly List<Song?> _clientSongs;
 

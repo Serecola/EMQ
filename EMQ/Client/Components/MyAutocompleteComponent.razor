@@ -25,14 +25,14 @@
            @bind:set="@(new Func<string, Task>(async value => await OnSetInputSearch(value)))"
            @bind:event="oninput"
            @onkeydown="OnKeyDown"
-           @onkeydown:preventDefault="ClientState.Preferences.AutocompleteIsEnabled && PreventDefault"
+           @onkeydown:preventDefault="IsDropdownEnabled && PreventDefault"
            @onfocus="OnFocus"
            @onblur="OnBlur"
            @oncompositionstart="OnCompositionStart"
            @oncompositionend="OnCompositionEnd"/>
 
     <div class="autocomplete-items" tabindex="1"
-         style="display: @UiHelpers.Bool2Display(ClientState.Preferences.AutocompleteIsEnabled && ShowDropdown && CurrentSearchResults.Any()); max-height: @MaxMenuHeight; overflow-x: auto; overflow-y: scroll;">
+         style="display: @UiHelpers.Bool2Display(IsDropdownEnabled && ShowDropdown && CurrentSearchResults.Any()); max-height: @MaxMenuHeight; overflow-x: auto; overflow-y: scroll;">
         @for (int i = 0; i < CurrentSearchResults.Length; i++)
         {
             TValue searchResult = CurrentSearchResults[i];

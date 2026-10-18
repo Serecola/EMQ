@@ -16,7 +16,7 @@ public class QuizSettings
 {
     public bool ShouldUpdateStats =>
         SongSelectionKind == SongSelectionKind.Random &&
-        AnsweringKind == AnsweringKind.Typing &&
+        AnsweringKind is AnsweringKind.Typing or AnsweringKind.TypingNoDropdown &&
         GamemodeKind != GamemodeKind.Radio &&
         Filters.ScreenshotKind == ScreenshotKind.None &&
         Filters.StartTimeKind == StartTimeKind.Random &&

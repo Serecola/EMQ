@@ -28,6 +28,13 @@ public static class ClientState
 
     public static PlayerPreferences Preferences { get; set; } = new();
 
+    /// <summary>
+    /// Whether the current room's answering method forces the autocomplete dropdown off for everyone
+    /// (<see cref="AnsweringKind.TypingNoDropdown"/>). Maintained by <c>QuizPage</c> and only applied to
+    /// guess inputs (which pass <c>IsQuizPage</c>), so filter/library autocompletes are unaffected.
+    /// </summary>
+    public static bool IsTypingNoDropdown { get; set; }
+
     public static ConcurrentDictionary<string, UploadResult> UploadResults { get; set; } = new();
 
     public static Dictionary<int, MusicVote> MusicVotes { get; set; } = new();

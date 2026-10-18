@@ -6,6 +6,7 @@
                          HighlightMatch="ClientState.Preferences.AutocompleteHighlightMatch"
                          RequireConfirmation="ClientState.Preferences.AutocompleteRequireConfirmation"
                          ShowIcons="ClientState.Preferences.AutocompleteShowIcons"
+                         IsTypingNoDropdown="@(IsQuizPage && ClientState.IsTypingNoDropdown)"
                          Disabled="IsDisabled"
                          Placeholder="@Placeholder"
                          GuessStr="@Guess"

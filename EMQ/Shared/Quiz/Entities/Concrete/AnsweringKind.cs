@@ -6,6 +6,9 @@ public enum AnsweringKind
 {
     Typing,
 
+    [Description("Typing (No DD)")]
+    TypingNoDropdown,
+
     [Description("Multiple Choice")]
     MultipleChoice,
 

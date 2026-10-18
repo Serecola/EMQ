@@ -2431,6 +2431,7 @@ public class QuizManager
         switch (Quiz.Room.QuizSettings.AnsweringKind)
         {
             case AnsweringKind.Typing:
+            case AnsweringKind.TypingNoDropdown:
                 Quiz.MultipleChoiceOptions.Clear();
                 break;
             case AnsweringKind.MultipleChoice:

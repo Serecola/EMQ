@@ -71,6 +71,25 @@ public partial class MyAutocompleteComponent<TValue> : IDisposable where TValue 
     [Parameter]
     public bool ShowIcons { get; set; } = true;
 
+    /// <summary>
+    /// When true, the input behaves as the "Typing (No DD)" answering method dictates: the autocomplete
+    /// dropdown is never shown (regardless of the <c>AutocompleteIsEnabled</c> preference) and input
+    /// auto-submit is always on (regardless of the <c>AutocompleteInputAutoSubmit</c> preference).
+    /// </summary>
+    [Parameter]
+    public bool IsTypingNoDropdown { get; set; }
+
+    /// <summary>
+    /// Whether the dropdown may be shown, combining the player preference with the forced override.
+    /// </summary>
+    private bool IsDropdownEnabled => ClientState.Preferences.AutocompleteIsEnabled && !IsTypingNoDropdown;
+
+    /// <summary>
+    /// Whether each keystroke auto-submits the typed text, combining the player preference with the
+    /// forced override from "Typing (No DD)".
+    /// </summary>
+    private bool ShouldAutoSubmit => ClientState.Preferences.AutocompleteInputAutoSubmit || IsTypingNoDropdown;
+
     private CancellationTokenSource? _autoSubmitCts;
 
     private const int AutoSubmitDebounceMs = 50;
@@ -175,7 +194,7 @@ public partial class MyAutocompleteComponent<TValue> : IDisposable where TValue 
         _autoSubmitCts?.Cancel();
         _autoSubmitCts?.Dispose();
 
-        if (!ClientState.Preferences.AutocompleteInputAutoSubmit)
+        if (!ShouldAutoSubmit)
         {
             _autoSubmitCts = null;
             return;
@@ -214,7 +233,7 @@ public partial class MyAutocompleteComponent<TValue> : IDisposable where TValue 
                     return;
                 }
 
-                if (!ClientState.Preferences.AutocompleteInputAutoSubmit)
+                if (!ShouldAutoSubmit)
                 {
                     return;
                 }
@@ -248,7 +267,7 @@ public partial class MyAutocompleteComponent<TValue> : IDisposable where TValue 
         {
             // Keep the suggestion list usable while auto-submitting each keystroke.
             // RequireConfirmation manages its own dropdown visibility, so leave it alone there.
-            if (ClientState.Preferences.AutocompleteIsEnabled && !RequireConfirmation)
+            if (IsDropdownEnabled && !RequireConfirmation)
             {
                 ShowDropdown = true;
                 CurrentFocus = Math.Clamp(savedFocus, -1,
@@ -262,7 +281,7 @@ public partial class MyAutocompleteComponent<TValue> : IDisposable where TValue 
     {
         switch (args.Key)
         {
-            case "ArrowUp" when ClientState.Preferences.AutocompleteIsEnabled:
+            case "ArrowUp" when IsDropdownEnabled:
                 {
                     PreventDefault = true; // prevent the input box cursor jumping to start
                     ShowDropdown = true;
@@ -271,7 +290,7 @@ public partial class MyAutocompleteComponent<TValue> : IDisposable where TValue 
                     await ScrollItemIntoView(CurrentFocus);
                     break;
                 }
-            case "ArrowDown" when ClientState.Preferences.AutocompleteIsEnabled:
+            case "ArrowDown" when IsDropdownEnabled:
                 {
                     PreventDefault = true; // prevent the input box cursor jumping to end
                     ShowDropdown = true;

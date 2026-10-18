@@ -232,7 +232,7 @@ else
                     @if (player.Id == ClientState.Session?.Player.Id)
                     {
                         <select @bind:get="@((int)player.AnsweringKind)" @bind:set="@SetAnsweringKindAsync" @bind:event="oninput">
-                            @foreach (var value in Enum.GetValues<AnsweringKind>().Where(x => x != AnsweringKind.Mixed))
+                            @foreach (var value in Enum.GetValues<AnsweringKind>().Where(x => x is not AnsweringKind.Mixed and not AnsweringKind.TypingNoDropdown))
                             {
                                 <option value="@((int)value)">@value.GetDescription()</option>
                             }

@@ -839,9 +839,16 @@ public class QuizController : ControllerBase
 
             if (room.QuizSettings.AnsweringKind == AnsweringKind.Mixed)
             {
-                player.AnsweringKind = answeringKind;
-                TypedQuizHub.ReceiveUpdateRoomForRoom(room.Players.Concat(room.Spectators).Select(x => x.Id), room);
-                return Ok();
+                if (answeringKind is AnsweringKind.Typing or AnsweringKind.MultipleChoice)
+                {
+                    player.AnsweringKind = answeringKind;
+                    TypedQuizHub.ReceiveUpdateRoomForRoom(room.Players.Concat(room.Spectators).Select(x => x.Id), room);
+                    return Ok();
+                }
+
+                _logger.LogWarning(
+                    "Attempt to SetAnsweringKind in r{room.Id} with invalid answeringKind {answeringKind} by p{req.playerId}",
+                    room.Id, answeringKind, player.Id);
             }
             else
             {
