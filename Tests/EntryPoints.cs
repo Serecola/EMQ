@@ -2435,8 +2435,9 @@ HAVING array_length(array_agg(DISTINCT aa.latin_alias), 1) = 1
     {
         string baseUrl = "https://emq.serecola.com";
         var client = new HttpClient();
-        client.DefaultRequestHeaders.Add("Cookie",
-            "");
+        string cookie = Environment.GetEnvironmentVariable("EMQ_COOKIE")
+            ?? throw new InvalidOperationException("Set EMQ_COOKIE");
+        client.DefaultRequestHeaders.Add("Cookie", cookie);
 
         async Task<bool> DownloadFileAsync(string url, string path)
         {

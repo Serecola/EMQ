@@ -26,14 +26,19 @@ public static class DotEnv
                     continue;
                 }
 
-                string[] parts = line.Split('=', StringSplitOptions.RemoveEmptyEntries);
-                if (parts.Length != 2)
+                int separatorIndex = line.IndexOf('=');
+                if (separatorIndex <= 0)
                 {
-                    throw new Exception(".env file lines must have 2 parts");
+                    throw new FormatException(".env file lines must use KEY=VALUE format");
                 }
 
-                string key = parts[0];
-                string value = parts[1];
+                string key = line[..separatorIndex].Trim();
+                if (key.Length == 0)
+                {
+                    throw new FormatException(".env file variable name cannot be empty");
+                }
+
+                string value = line[(separatorIndex + 1)..];
                 // Console.WriteLine($"set {key} to {value}");
                 Environment.SetEnvironmentVariable(key, value);
             }
