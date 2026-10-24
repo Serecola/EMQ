@@ -2902,6 +2902,40 @@ WHERE msm.music_id = ANY(@validMids) AND msel.url = ANY(@validSources)",
                     case ListDistributionKind.Random:
                     case ListDistributionKind.CappedRandom:
                         {
+                            if (Quiz.Room.QuizSettings.ListDistributionKind == ListDistributionKind.Random ||
+                                (Quiz.Room.QuizSettings.ListDistributionKind == ListDistributionKind.Balanced &&
+                                 validSourcesDict.Count < 2))
+                            {
+                                if (Quiz.Room.QuizSettings.IsPreventSameSongSpam)
+                                {
+                                    DateTime cutoff = DateTime.UtcNow -
+                                                      TimeSpan.FromMinutes(
+                                                          Quiz.Room.QuizSettings.PreventSameSongSpamMinutes);
+                                    invalidMids ??= new List<int>();
+                                    invalidMids.AddRange(Quiz.Room.Players
+                                        .SelectMany(player => player.SongLastPlayedAtDict
+                                            .Where(x => x.Value > cutoff)
+                                            .Select(x => x.Key))
+                                        .Distinct());
+                                }
+
+                                if (Quiz.Room.QuizSettings.IsPreventSameVNSpam)
+                                {
+                                    DateTime cutoff = DateTime.UtcNow -
+                                                      TimeSpan.FromMinutes(
+                                                          Quiz.Room.QuizSettings.PreventSameVNSpamMinutes);
+                                    var recentlyPlayedVns = Quiz.Room.Players
+                                        .SelectMany(player => player.VNLastPlayedAtDict
+                                            .Where(x => x.Value > cutoff)
+                                            .Select(x => x.Key))
+                                        .ToHashSet();
+                                    foreach (List<string> validSources in validSourcesDict.Values)
+                                    {
+                                        validSources.RemoveAll(recentlyPlayedVns.Contains);
+                                    }
+                                }
+                            }
+
                             if (Quiz.Room.QuizSettings.ListDistributionKind == ListDistributionKind.CappedRandom)
                             {
                                 int n = Quiz.Room.QuizSettings.CappedRandomLimit;

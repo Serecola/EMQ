@@ -2570,12 +2570,16 @@ HAVING array_length(array_agg(DISTINCT aa.latin_alias), 1) = 1
                 var res2 = await client.PostAsJsonAsync($"{baseUrl}/Library/SetVocalsRangesBatch", dict);
                 if (!res2.IsSuccessStatusCode)
                 {
-                    throw new Exception();
+                    string responseBody = await res2.Content.ReadAsStringAsync();
+                    throw new HttpRequestException(
+                        $"SetVocalsRangesBatch failed with {(int)res2.StatusCode} {res2.StatusCode}: {responseBody}");
                 }
             }
             else
             {
-                throw new Exception();
+                string responseBody = await res.Content.ReadAsStringAsync();
+                throw new HttpRequestException(
+                    $"GetVocalsRangesBatch failed with {(int)res.StatusCode} {res.StatusCode}: {responseBody}");
             }
         } while (more);
     }

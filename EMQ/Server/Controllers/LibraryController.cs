@@ -1243,6 +1243,27 @@ public class LibraryController : ControllerBase
     }
 
     [CustomAuthorize(PermissionKind.SearchLibrary)]
+    [HttpGet]
+    [Route("GetAutocompleteCollections")]
+    public async Task<AutocompleteCollection[]> GetAutocompleteCollections()
+    {
+        var session = AuthStuff.GetSession(HttpContext.Items);
+        if (session is null)
+        {
+            return Array.Empty<AutocompleteCollection>();
+        }
+
+        await using var connection = new NpgsqlConnection(ConnectionHelper.GetConnectionString());
+        var collections = await connection.QueryAsync<AutocompleteCollection>(
+            @"select c.id as CoId, c.name as Name
+              from collection c
+              where c.visibility = @visibility
+                 or exists (select 1 from collection_users cu where cu.collection_id = c.id and cu.user_id = @uid)",
+            new { visibility = (int)CollectionVisibilityKind.Public, uid = session.Player.Id });
+        return collections.ToArray();
+    }
+
+    [CustomAuthorize(PermissionKind.SearchLibrary)]
     [HttpPost]
     [Route("GetCollectionContainers")]
     // [OutputCache(Duration = 15, PolicyName = "MyOutputCachePolicy")]

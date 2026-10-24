@@ -515,7 +515,8 @@
                                     <br/>
                                 }
 
-                                @if (!ClientQuizSettings.Filters.ListReadKindFiltersHasUnread && ClientQuizSettings.ListDistributionKind == ListDistributionKind.Balanced)
+                                @if (!ClientQuizSettings.Filters.ListReadKindFiltersHasUnread &&
+                                     ClientQuizSettings.ListDistributionKind is ListDistributionKind.Random or ListDistributionKind.Balanced)
                                 {
                                     <div style="border: 1px black solid;">
                                         <InputCheckbox id="IsPreventSameSongSpam" class="form-check-input" @bind-Value="ClientQuizSettings.IsPreventSameSongSpam" style="margin: 5px;"></InputCheckbox>

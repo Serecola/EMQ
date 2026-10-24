@@ -5,6 +5,7 @@ using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
+using System.Timers;
 using Blazorise.Components;
 using EMQ.Shared.Core;
 using EMQ.Shared.Library.Entities.Concrete;
@@ -16,11 +17,11 @@ using Microsoft.AspNetCore.SignalR.Client;
 
 namespace EMQ.Client.Components;
 
-public partial class AutocompleteCollectionComponent : IAutocompleteComponent
+public partial class AutocompleteCollectionComponent : IAutocompleteComponent, IDisposable
 {
     public MyAutocompleteComponent<AutocompleteCollection> AutocompleteComponent { get; set; } = null!;
 
-    private const string AutocompleteKey = "autocomplete/collection.json";
+    private const string AutocompleteKey = "Library/GetAutocompleteCollections";
 
     public static AutocompleteCollection[] AutocompleteData
     {
@@ -38,6 +39,8 @@ public partial class AutocompleteCollectionComponent : IAutocompleteComponent
     public bool IsQuizPage { get; set; }
 
     private AutocompleteCollection? _guess;
+
+    private Timer? _refreshTimer;
 
     [Parameter]
     public AutocompleteCollection? Guess
@@ -61,8 +64,23 @@ public partial class AutocompleteCollectionComponent : IAutocompleteComponent
 
     protected override Task OnInitializedAsync()
     {
-        return AutocompleteDataLoader.EnsureAutocompleteDataAsync(AutocompleteKey,
+        var loadTask = AutocompleteDataLoader.EnsureAutocompleteDataAsync(AutocompleteKey,
             () => _client.GetFromJsonAsync<AutocompleteCollection[]>(AutocompleteKey, Utils.Jso));
+
+        // Refresh the collection list every 1 minute so newly created collections appear
+        // without requiring a page reload.
+        _refreshTimer = new Timer(60000);
+        _refreshTimer.Elapsed += async (_, _) =>
+        {
+            ClientState.AutocompleteData.TryRemove(AutocompleteKey, out _);
+            await AutocompleteDataLoader.EnsureAutocompleteDataAsync(AutocompleteKey,
+                () => _client.GetFromJsonAsync<AutocompleteCollection[]>(AutocompleteKey, Utils.Jso));
+            await InvokeAsync(StateHasChanged);
+        };
+        _refreshTimer.AutoReset = true;
+        _refreshTimer.Start();
+
+        return loadTask;
     }
 
     public void CallStateHasChanged()
@@ -134,5 +152,11 @@ public partial class AutocompleteCollectionComponent : IAutocompleteComponent
     {
         Guess = MapValue(value);
         Callback?.Invoke();
+    }
+
+    public void Dispose()
+    {
+        _refreshTimer?.Stop();
+        _refreshTimer?.Dispose();
     }
 }
