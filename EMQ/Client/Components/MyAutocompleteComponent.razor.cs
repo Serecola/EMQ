@@ -79,16 +79,19 @@ public partial class MyAutocompleteComponent<TValue> : IDisposable where TValue 
     [Parameter]
     public bool IsTypingNoDropdown { get; set; }
 
+    [Parameter]
+    public bool UsePreferences { get; set; } = true;
+
     /// <summary>
     /// Whether the dropdown may be shown, combining the player preference with the forced override.
     /// </summary>
-    private bool IsDropdownEnabled => ClientState.Preferences.AutocompleteIsEnabled && !IsTypingNoDropdown;
+    private bool IsDropdownEnabled => (UsePreferences ? ClientState.Preferences.AutocompleteIsEnabled : true) && !IsTypingNoDropdown;
 
     /// <summary>
     /// Whether each keystroke auto-submits the typed text, combining the player preference with the
     /// forced override from "Typing (No DD)".
     /// </summary>
-    private bool ShouldAutoSubmit => ClientState.Preferences.AutocompleteInputAutoSubmit || IsTypingNoDropdown;
+    private bool ShouldAutoSubmit => (UsePreferences ? ClientState.Preferences.AutocompleteInputAutoSubmit : false) || IsTypingNoDropdown;
 
     private CancellationTokenSource? _autoSubmitCts;
 
@@ -306,8 +309,8 @@ public partial class MyAutocompleteComponent<TValue> : IDisposable where TValue 
                     _autoSubmitCts?.Dispose();
                     _autoSubmitCts = null;
 
-                    if ((ClientState.Preferences.AutocompleteInputAutoSubmit ||
-                         ClientState.Preferences.AutocompleteMultiTermMatching) &&
+                    if ((UsePreferences ? ClientState.Preferences.AutocompleteInputAutoSubmit : false) ||
+                         (UsePreferences ? ClientState.Preferences.AutocompleteMultiTermMatching : false) && !IsTypingNoDropdown &&
                         CurrentFocus < 0 &&
                         CurrentSearchResults.Length > 0)
                     {

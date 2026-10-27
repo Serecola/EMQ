@@ -102,6 +102,9 @@ public partial class GuessInputComponent : IAutocompleteComponent
     [Parameter]
     public bool AllowTypingId { get; set; }
 
+    [Parameter]
+    public bool UsePreferences { get; set; } = true;
+
     public string? GetSelectedText() => AutocompleteComponent.SelectedText;
 
     protected override Task OnParametersSetAsync()
@@ -176,7 +179,7 @@ public partial class GuessInputComponent : IAutocompleteComponent
         }
 
         const int maxResults = 25; // todo
-        if (ClientState.Preferences.AutocompleteMultiTermMatching)
+        if (UsePreferences && ClientState.Preferences.AutocompleteMultiTermMatching)
         {
             string[] queryWords = AutocompleteHelpers.GetAutocompleteQueryWords(rawValue);
             if (queryWords.Length >= 2)

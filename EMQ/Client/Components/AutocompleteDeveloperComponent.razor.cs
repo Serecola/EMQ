@@ -125,7 +125,7 @@ public partial class AutocompleteDeveloperComponent : IAutocompleteComponent
         var valueSpan = value.AsSpan();
         bool hasNonAscii = !Ascii.IsValid(valueSpan);
         const int maxResults = 25; // todo
-        if (ClientState.Preferences.AutocompleteMultiTermMatching)
+        if (false)
         {
             string[] queryWords = AutocompleteHelpers.GetAutocompleteQueryWords(rawValue);
             if (queryWords.Length >= 2)

@@ -136,7 +136,7 @@
                 <button type="button" class="btn btn-primary" @onclick="PasteSources">Paste sources (overwrite)</button>
             }
 
-            <GuessInputComponent @ref="_guessInputComponentRef"
+            <GuessInputComponent @ref="_guessInputComponentRef" UsePreferences="false"
                                  Placeholder="Add source"
                                  IsDisabled="@(Song.DataSource == DataSourceKind.VNDB)"
                                  IsQuizPage="false"

@@ -176,7 +176,7 @@ public partial class AutocompleteAComponent : IAutocompleteComponent
         }
 
         int maxResults = 30;
-        if (ClientState.Preferences.AutocompleteMultiTermMatching)
+        if (false)
         {
             string[] queryWords = AutocompleteHelpers.GetAutocompleteQueryWords(rawValue);
             if (queryWords.Length >= 2)
