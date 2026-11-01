@@ -44,6 +44,37 @@ public class QuizManager
 
     private DateTime PreviousGuessPhaseStartedAt { get; set; }
 
+    private static readonly string[] DeveloperSuffixes = { "coltd", "ltd", "inc", "co", "corporation" };
+
+    private static bool DeveloperGuessMatches(string normalizedGuess, string normalizedCorrectAnswer)
+    {
+        if (normalizedGuess == normalizedCorrectAnswer)
+        {
+            return true;
+        }
+
+        foreach (var suffix in DeveloperSuffixes)
+        {
+            // Correct answer carries the suffix, guess omits it.
+            if (normalizedCorrectAnswer.EndsWith(suffix) &&
+                normalizedCorrectAnswer.Length > suffix.Length &&
+                normalizedCorrectAnswer.Substring(0, normalizedCorrectAnswer.Length - suffix.Length) == normalizedGuess)
+            {
+                return true;
+            }
+
+            // Guess carries the suffix, correct answer omits it.
+            if (normalizedGuess.EndsWith(suffix) &&
+                normalizedGuess.Length > suffix.Length &&
+                normalizedGuess.Substring(0, normalizedGuess.Length - suffix.Length) == normalizedCorrectAnswer)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     private async Task SetTimer()
     {
         if (!Quiz.IsDisposed && !Quiz.IsTimerRunning)
@@ -656,9 +687,10 @@ public class QuizManager
                     Quiz.Room.Log("cA-developer: " + JsonSerializer.Serialize(correctAnswers, Utils.Jso));
                 }
 
+                var normalizedGuess = guess.NormalizeForAutocomplete();
                 foreach (string correctAnswer in correctAnswers)
                 {
-                    if (guess.NormalizeForAutocomplete() == correctAnswer)
+                    if (DeveloperGuessMatches(normalizedGuess, correctAnswer))
                     {
                         correct = true;
                         break;

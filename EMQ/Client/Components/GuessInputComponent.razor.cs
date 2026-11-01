@@ -197,10 +197,14 @@ public partial class GuessInputComponent : IAutocompleteComponent
                     }
                 }
 
-                return (TValue[])(object)scored
+                IEnumerable<(AutocompleteMst Item, int Score, int Index)> dedupedMt = scored
                     .OrderByDescending(x => x.Score)
-                    .ThenBy(x => x.Index)
-                    .DistinctBy(x => x.Item.MSId)
+                    .ThenBy(x => x.Index);
+                if (UsePreferences && ClientState.Preferences.AutocompleteDedupSameId)
+                {
+                    dedupedMt = dedupedMt.DistinctBy(x => x.Item.MSId);
+                }
+                return (TValue[])(object)dedupedMt
                     .Take(maxResults)
                     .Select(x => x.Item)
                     .ToArray();
@@ -231,9 +235,13 @@ public partial class GuessInputComponent : IAutocompleteComponent
             }
         }
 
-        return (TValue[])(object)dictLT.Concat(dictNLT)
-            .OrderByDescending(x => x.Value)
-            .DistinctBy(x => x.Key.MSId)
+        IEnumerable<KeyValuePair<AutocompleteMst, StringMatch>> dedupedRegular = dictLT.Concat(dictNLT)
+            .OrderByDescending(x => x.Value);
+        if (UsePreferences && ClientState.Preferences.AutocompleteDedupSameId)
+        {
+            dedupedRegular = dedupedRegular.DistinctBy(x => x.Key.MSId);
+        }
+        return (TValue[])(object)dedupedRegular
             .Take(maxResults)
             .Select(x => x.Key)
             .ToArray();

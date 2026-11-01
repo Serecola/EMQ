@@ -160,6 +160,10 @@
             <InputCheckbox id="AutocompleteShowIcons" class="form-check-input" @bind-Value="ClientState.Preferences.AutocompleteShowIcons" style="margin: 5px"></InputCheckbox>
             <label for="AutocompleteShowIcons">Show icons</label>
             <br/>
+
+            <InputCheckbox id="AutocompleteDedupSameId" class="form-check-input" @bind-Value="ClientState.Preferences.AutocompleteDedupSameId" style="margin: 5px"></InputCheckbox>
+            <label for="AutocompleteDedupSameId">Hide duplicate titles of the same ID in dropdown</label>
+            <br/>
         </div>
 
     </Blazorise.TabPanel>

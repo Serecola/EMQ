@@ -21,6 +21,10 @@ public partial class AutocompleteDeveloperComponent : IAutocompleteComponent
 
     private const string AutocompleteKey = "autocomplete/developer.json";
 
+    // Company suffixes (normalized, longest first) whose suffixed dropdown entries are hidden
+    // when the base version also exists in the dataset.
+    private static readonly string[] DeveloperDropdownSuffixes = { "coltd", "ltd", "inc", "co", "corporation" };
+
     public AutocompleteMst[] AutocompleteData
     {
         get => AutocompleteDataLoader.GetAutocompleteData<AutocompleteMst>(AutocompleteKey);
@@ -175,7 +179,34 @@ public partial class AutocompleteDeveloperComponent : IAutocompleteComponent
             }
         }
 
+        // Build a set of all normalized Latin titles so we can hide suffixed dropdown entries
+        // when the base version also exists in the dataset (e.g. hide "MAGI Inc." if "MAGI" exists).
+        var allNormalizedTitles = AutocompleteData
+            .Select(d => d.MSTLatinTitleNormalized)
+            .Where(n => !string.IsNullOrWhiteSpace(n))
+            .ToHashSet();
+
         return (TValue[])(object)dictLT.Concat(dictNLT)
+            .Where(x =>
+            {
+                var norm = x.Key.MSTLatinTitleNormalized;
+                if (string.IsNullOrWhiteSpace(norm))
+                {
+                    return true;
+                }
+                foreach (var suffix in DeveloperDropdownSuffixes)
+                {
+                    if (norm.EndsWith(suffix) && norm.Length > suffix.Length)
+                    {
+                        var baseTitle = norm.Substring(0, norm.Length - suffix.Length);
+                        if (allNormalizedTitles.Contains(baseTitle))
+                        {
+                            return false; // base version exists; hide the suffixed entry
+                        }
+                    }
+                }
+                return true;
+            })
             .OrderByDescending(x => x.Value)
             .DistinctBy(x => x.Key.MSTLatinTitle)
             .Take(maxResults)

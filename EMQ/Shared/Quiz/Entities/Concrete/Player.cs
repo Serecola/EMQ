@@ -263,6 +263,9 @@ public class PlayerPreferences
     public bool AutocompleteMultiTermMatching { get; set; } = false;
 
     [Required]
+    public bool AutocompleteDedupSameId { get; set; } = true;
+
+    [Required]
     public CdnEdgeKind CdnEdge { get; set; } = CdnEdgeKind.NaEast;
 
     [Required]
