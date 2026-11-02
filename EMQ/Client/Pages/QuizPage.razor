@@ -373,7 +373,7 @@
                    style="background: black; display: @UiHelpers.Bool2Display(VisibleVideoElementId == "video2"); width: @widthStr; height: @heightStr;">
             </video>
 
-            @if (PageState.VideoPlayerVisibility && _currentSong is not null && (!_currentSong.Links.FirstOrDefault()?.Url.IsVideoLink() ?? false))
+            @if (PageState.VideoPlayerVisibility && _currentSong is not null && !(_currentSong.Links.FirstOrDefault()?.Url.IsVideoLink() ?? false))
             {
                 @if (ClientState.Preferences.ShowVndbCovers && !string.IsNullOrEmpty(_currentSong.CoverUrl))
                 {
