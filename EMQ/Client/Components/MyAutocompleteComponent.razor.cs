@@ -309,8 +309,9 @@ public partial class MyAutocompleteComponent<TValue> : IDisposable where TValue 
                     _autoSubmitCts?.Dispose();
                     _autoSubmitCts = null;
 
-                    if ((UsePreferences ? ClientState.Preferences.AutocompleteInputAutoSubmit : false) ||
-                         (UsePreferences ? ClientState.Preferences.AutocompleteMultiTermMatching : false) && !IsTypingNoDropdown &&
+                    if (!IsTypingNoDropdown &&
+                        ((UsePreferences ? ClientState.Preferences.AutocompleteInputAutoSubmit : false) ||
+                         (UsePreferences ? ClientState.Preferences.AutocompleteMultiTermMatching : false)) &&
                         CurrentFocus < 0 &&
                         CurrentSearchResults.Length > 0)
                     {
